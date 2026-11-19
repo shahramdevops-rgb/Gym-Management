@@ -47,11 +47,18 @@ public sealed class SmsSamplesTests(DatabaseFixture fixture) : DatabaseTestBase(
         samples.Absence.Text.ShouldBe("علی عزیز، جات توی باشگاه پاسارگاد خالیه! ۱۲ روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!\nلغو11");
         samples.Absence.Parts.ShouldBe(2);
 
+        // Task 15.7n: the developer's sample trainer, and the 7 days the settings start at.
+        samples.CoachingPeriodEnding.Text.ShouldBe(
+            "علی عزیز، ۷ روز تا پایان دورهٔ مربی‌گری‌ات با مربی علی شریفی‌پور مونده. برای ادامه، از اپ باشگاه درخواست تمدید بده.\nباشگاه پاسارگاد\nلغو11");
+
+        // 137 characters: three parts, as docs/sms-texts.md says.
+        samples.CoachingPeriodEnding.Parts.ShouldBe(3);
+
         foreach (var sample in new[]
                  {
                      samples.SubscriptionExpiring, samples.LowSessions, samples.Birthday, samples.PayableDue,
                      samples.DailyReport, samples.SubscriptionReceipt, samples.Welcome, samples.DebtReminder,
-                     samples.Absence,
+                     samples.Absence, samples.CoachingPeriodEnding,
                  }.Concat(samples.WelcomeBack))
         {
             sample.Text.ShouldEndWith($"\n{SmsText.OptOut}");

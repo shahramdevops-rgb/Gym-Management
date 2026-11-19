@@ -39,6 +39,14 @@ public static class SmsSettingsErrors
         "Sms.AbsenceDaysOutOfRange",
         "Days away must be from 7 to 60.");
 
+    /// <summary>
+    /// The coaching period's last days (task 15.7n): 3 to 14, and never empty, since the trainer's
+    /// mark in «شاگردان من» reads it even while the SMS is off.
+    /// </summary>
+    public static readonly Error CoachingPeriodEndingDaysOutOfRange = Error.Validation(
+        "Sms.CoachingPeriodEndingDaysOutOfRange",
+        "Days left of the coaching period must be from 3 to 14.");
+
     /// <summary>The debt reminder's minimum amount (task 10.11): 1,000 Toman or more, at most 2 decimal places.</summary>
     public static readonly Error DebtReminderMinAmountOutOfRange = Error.Validation(
         "Sms.DebtReminderMinAmountOutOfRange",

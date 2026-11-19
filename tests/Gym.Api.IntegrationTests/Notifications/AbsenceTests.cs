@@ -219,7 +219,7 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: new SmsKindSettings(true, DaysAway, new TimeOnly(11, 0)),
-            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false).IsSuccess.ShouldBeTrue();
+            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false, coachingPeriodEnding: SmsSettings.CoachingPeriodEndingAtStart).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -238,6 +238,7 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
             scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
             new AbsenceCandidate(db, calendar),
+            new CoachingPeriodEndingCandidate(db),
             NullLogger<SendDailySmsHandler>.Instance);
 
         return await handler.Handle(NotificationKind.Absence, TestContext.Current.CancellationToken);

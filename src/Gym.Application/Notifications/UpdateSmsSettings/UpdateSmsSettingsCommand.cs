@@ -13,6 +13,7 @@ namespace Gym.Application.Notifications.UpdateSmsSettings;
 /// <param name="Broadcast">The broadcast's switch (task 10.13).</param>
 /// <param name="TrainerRequest">The trainer's SMS switch (task 15.4c).</param>
 /// <param name="SessionCancelled">The cancelled session's SMS switch (task 15.6c).</param>
+/// <param name="CoachingPeriodEnding">The coaching period's last days: switch, days left (3 to 14, never empty) and time (task 15.7n).</param>
 /// <param name="Version">The <c>version</c> from the settings as they were read before editing.</param>
 public sealed record UpdateSmsSettingsCommand(
     bool Enabled,
@@ -30,4 +31,5 @@ public sealed record UpdateSmsSettingsCommand(
     BroadcastSettings Broadcast,
     TrainerRequestSettings TrainerRequest,
     SessionCancelledSettings SessionCancelled,
+    SmsKindSettings CoachingPeriodEnding,
     uint Version);

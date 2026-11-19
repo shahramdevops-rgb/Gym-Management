@@ -35,7 +35,17 @@ const month = {
       isVip: false,
       state: "OnTime",
       checkedInAt: "12:50:00",
-      minutesEarly: 10,
+    },
+    {
+      ...visit,
+      date: "2026-10-27",
+      start: "13:00:00",
+      end: "14:00:00",
+      trainerName: null,
+      isVip: false,
+      state: "Early",
+      checkedInAt: "12:20:00",
+      minutesEarly: 40,
     },
     {
       ...visit,
@@ -60,7 +70,7 @@ const month = {
       checkedInAt: null,
     },
   ],
-  totals: { onTime: 1, late: 1, cameAfter: 0, absent: 1, leave: 0, cancelled: 0 },
+  totals: { early: 1, onTime: 1, late: 1, cameAfter: 0, absent: 1, leave: 0, cancelled: 0 },
 };
 
 describe("the member's «حضور من»", () => {
@@ -86,9 +96,12 @@ describe("the member's «حضور من»", () => {
     renderSite("/my-attendance", { access: memberOnly });
 
     const sessions = within(await screen.findByRole("list", { name: "سانس‌های ماه" }));
-    const [early, late, absent] = sessions.getAllByRole("listitem");
-    expect(early).toHaveTextContent("به‌موقع ۱۲:۵۰");
-    expect(early).toHaveTextContent("با سارا احمدی");
+    const [onTime, early, late, absent] = sessions.getAllByRole("listitem");
+    expect(onTime).toHaveTextContent("به‌موقع ۱۲:۵۰");
+    expect(onTime).not.toHaveTextContent("دقیقه");
+    expect(onTime).toHaveTextContent("با سارا احمدی");
+    expect(early).toHaveTextContent("زودتر از موعد ۱۲:۲۰");
+    expect(early).toHaveTextContent("۴۰ دقیقه زودتر از موعد");
     expect(late).toHaveTextContent("با تأخیر ۱۳:۲۵");
     expect(late).toHaveTextContent("مرخصی داشت · ۲۵ دقیقه تأخیر");
     expect(late).not.toHaveTextContent("با سارا");
@@ -96,6 +109,7 @@ describe("the member's «حضور من»", () => {
 
     const totals = within(screen.getByRole("list", { name: "جمع ماه" }));
     expect(totals.getAllByRole("listitem").map((box) => box.textContent)).toEqual([
+      "۱زودتر از موعد",
       "۱به‌موقع",
       "۱با تأخیر",
       "۰بعد از سانس",
@@ -120,7 +134,7 @@ describe("the member's «حضور من»", () => {
         json(200, {
           ...month,
           sessions: [],
-          totals: { ...month.totals, onTime: 0, late: 0, absent: 0 },
+          totals: { ...month.totals, early: 0, onTime: 0, late: 0, absent: 0 },
         }),
     });
     renderSite("/my-attendance", { access: memberOnly });

@@ -19,7 +19,8 @@ namespace Gym.Domain.Notifications;
 /// absence, one
 /// <see cref="NotificationKind.Broadcast"/> per member and broadcast, one
 /// <see cref="NotificationKind.TrainerRequest"/> per member, trainer and day, one
-/// <see cref="NotificationKind.SessionCancelled"/> per member and change of the timetable), a second
+/// <see cref="NotificationKind.SessionCancelled"/> per member and change of the timetable, one
+/// <see cref="NotificationKind.CoachingPeriodEnding"/> per trainer link and last day), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -112,6 +113,19 @@ public sealed class Notification : Entity
     /// the sessions (<c>SessionCancellation.ChangeId</c>), one per member and save (task 15.6c).
     /// </summary>
     public Guid? TimetableChangeId { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.CoachingPeriodEnding"/> only: the trainer link
+    /// (<c>TrainerLink</c>) whose period is ending, with <see cref="PeriodEndsOn"/> (task 15.7n).
+    /// </summary>
+    public Guid? TrainerLinkId { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.CoachingPeriodEnding"/> only: the coaching's last day the
+    /// SMS was about, one per link and last day, so a «تمدید» or a «ویرایش» that moves it brings the
+    /// new last day its own (task 15.7n).
+    /// </summary>
+    public DateOnly? PeriodEndsOn { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -299,6 +313,26 @@ public sealed class Notification : Entity
         var notification = Create(NotificationKind.SessionCancelled, recipient, text);
         notification.MemberId = memberId;
         notification.TimetableChangeId = changeId;
+
+        return notification;
+    }
+
+    /// <summary>
+    /// The member's coaching period has a few days left (<see cref="NotificationKind.CoachingPeriodEnding"/>,
+    /// task 15.7n, BUSINESS_RULES.md §15 <i>The coaching period</i>).
+    /// </summary>
+    /// <param name="linkId">The member's link with their trainer.</param>
+    /// <param name="periodEndsOn">The coaching's last day: at most one per link and last day.</param>
+    public static Notification ForCoachingPeriodEnding(
+        Guid memberId, Guid linkId, DateOnly periodEndsOn, string recipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+        CheckId(linkId, nameof(linkId));
+
+        var notification = Create(NotificationKind.CoachingPeriodEnding, recipient, text);
+        notification.MemberId = memberId;
+        notification.TrainerLinkId = linkId;
+        notification.PeriodEndsOn = periodEndsOn;
 
         return notification;
     }

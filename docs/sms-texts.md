@@ -264,3 +264,24 @@ saves a change of the timetable that cancels sessions the student is in (BUSINES
 - The day as the site app writes it («سه‌شنبه», «پنجشنبه»), the date without the year as in the
   daily report (`۰۸/۱۶`), the start as `۱۸:۳۰`. The trainer keeps the first 3 words of their name
   (`SmsText.MaxTrainerNameWords`). Two parts with 10-character names.
+
+### The coaching period's last days (`CoachingPeriodEnding`, to the student)
+
+Written by Claude and accepted by the developer on 1405/08/24 (2026-11-15), built with 15.7n on
+1405/08/28. Sent by the daily run when the student's coaching has at most *N* days left
+(BUSINESS_RULES.md §15 *The period's last days*), once per link and last day.
+
+```
+{first name} عزیز، {days} روز تا پایان دورهٔ مربی‌گری‌ات با مربی {trainer} مونده. برای ادامه، از اپ باشگاه درخواست تمدید بده.
+باشگاه پاسارگاد
+```
+
+- `{days}` is the real days left, the last day counting as one, not the settings' number: a missed
+  run says the days that are really left.
+- «باشگاه پاسارگاد» stands on a line of its own (`SmsText.GymSignature`), above «لغو11»: the text
+  speaks of a trainer, so it says who sends it.
+- The trainer keeps the first 3 words of their name (`SmsText.MaxTrainerNameWords`), as in the
+  cancelled session's SMS. The settings page's sample trainer is «علی شریفی‌پور».
+- **Three parts**: 137 characters with the page's sample names, and two parts hold 134. Pointed out
+  to the developer with 15.7n; the wording stays as accepted unless they shorten it.
+- It points to «درخواست تمدید» in «مربی من», which comes with 15.7o.

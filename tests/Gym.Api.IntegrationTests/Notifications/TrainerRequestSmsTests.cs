@@ -310,7 +310,7 @@ public sealed class TrainerRequestSmsTests(DatabaseFixture fixture) : DatabaseTe
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
             broadcastEnabled: false,
-            trainerRequestEnabled: trainerRequest, sessionCancelledEnabled: false).IsSuccess.ShouldBeTrue();
+            trainerRequestEnabled: trainerRequest, sessionCancelledEnabled: false, coachingPeriodEnding: SmsSettings.CoachingPeriodEndingAtStart).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

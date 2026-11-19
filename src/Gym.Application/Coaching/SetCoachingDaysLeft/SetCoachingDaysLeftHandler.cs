@@ -19,6 +19,10 @@ namespace Gym.Application.Coaching.SetCoachingDaysLeft;
 /// again to use the days, as after «تمدید».
 /// </para>
 /// <para>
+/// <b>A later last day answers the student's «درخواست تمدید»</b> waiting (15.7o); an earlier one
+/// leaves it for the trainer to answer.
+/// </para>
+/// <para>
 /// Under the coaching lock, then the trainer's, in the order «تمدید» takes them, so «ذخیره برنامه» reads
 /// the period before or after this, never half of it.
 /// </para>
@@ -62,6 +66,13 @@ public sealed class SetCoachingDaysLeftHandler(IAppDbContext db, IGymCalendar ca
         if (link.PeriodEndsOn is { } lastDay && lastDay < lastDayBefore)
         {
             await CoachingPeriods.CutAfterAsync(db, link.Id, lastDay, cancellationToken);
+        }
+
+        // A later last day answers the student's «درخواست تمدید», as a «تمدید» does; an earlier one
+        // leaves it waiting for the trainer (decided with 15.7o's plan).
+        if (link.PeriodEndsOn > lastDayBefore)
+        {
+            await RenewalRequests.AnswerWaitingAsync(db, link.Id, today, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);

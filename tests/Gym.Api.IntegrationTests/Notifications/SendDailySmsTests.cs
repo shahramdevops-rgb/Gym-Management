@@ -274,7 +274,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
-            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false));
+            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false, coachingPeriodEnding: SmsSettings.CoachingPeriodEndingAtStart));
         await AddPlanWithSessionsLeftAsync(await AddMemberAsync(), left, sessions: sessions);
         var sender = new ScriptedSmsSender();
 
@@ -684,6 +684,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
             scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
             scope.ServiceProvider.GetRequiredService<AbsenceCandidate>(),
+            new CoachingPeriodEndingCandidate(db),
             NullLogger<SendDailySmsHandler>.Instance);
 
         return await handler.Handle(kind, TestContext.Current.CancellationToken);
@@ -712,7 +713,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: kind == NotificationKind.Absence ? on : SmsKindSettings.Off,
-            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false));
+            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false, coachingPeriodEnding: SmsSettings.CoachingPeriodEndingAtStart));
     }
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
@@ -731,7 +732,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         debtReminder: SmsKindSettings.Off,
         debtReminderMinAmount: null,
         absence: SmsKindSettings.Off,
-        broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false));
+        broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false, coachingPeriodEnding: SmsSettings.CoachingPeriodEndingAtStart));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {

@@ -1703,6 +1703,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Absence | on/off, days away, send time | 7–60 days |
   | Welcome back | on/off | half an hour after the check-in, 08:00 until midnight |
   | Broadcast | on/off | sent at once from its own page, 08:00–22:00 |
+  | Coaching period's last days (§15, 15.7n) | on/off, days left, send time | 3–14 days; never empty, 7 to start with |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,
@@ -1719,7 +1720,10 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   receives them: the members, the Owner, the broadcast, and the trainers («پیامک به مربیان», with
   the one kind of §15, 15.4c). The coaching period's last days (§15 *The coaching period*) goes to
   the student, so it is with the members' kinds, with its *N* (3 to 14 days); its sample trainer is
-  «علی شریفی‌پور» (the developer, 1405/08/24).
+  «علی شریفی‌پور» (the developer, 1405/08/24). Its *N* is **the one number that is never empty**,
+  so it is not "empty until the Owner decides" like the others: the trainer's mark in «شاگردان من»
+  reads it whether the SMS is on or off (*proposed by Claude with 15.7n's plan, accepted by the
+  developer 1405/08/28*). The page says so under it.
 - **The broadcast is one card on this page** (*The broadcast*): its switch, and writing and sending
   one, with the message drawn as it is typed. It has no page, tab or menu item of its own, and no
   list of the broadcasts sent: their messages are on «پیامک‌ها». Only the latest, while it is
@@ -1837,22 +1841,6 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   §9); the amount is read out to a screen reader
   and is on «تنظیمات پیامک», which the box opens (1405/08/01, when the new look met the SMS
   release; the developer may ask for the amount back).
-- **The server reminder (شارژ سرور)** (decided with the developer, 1405/08/24, task 13.6): the
-  server is paid every month, outside the panel, and nothing can ask the provider how long is
-  left, so the panel reminds by the calendar alone. Decided by the developer:
-  - the payment is due on the **1st of every Jalali month**;
-  - the Owner sees a box in the header, beside the SMS credit, from **five days before** that 1st;
-  - it stays until the Owner presses it and confirms «شارژ کردم», which hides it until the next
-    month's five days. It never goes away by itself: when the 1st comes and nobody confirmed, it
-    stays and says the server is not paid;
-  - **no SMS**: the header is the reminder, as for the SMS credit;
-  - **on a phone** (below 1024px) only its coloured icon, small like the SMS credit's, so nothing
-    else in the header moves or breaks (asked by the developer the same day).
-
-  Still to settle at the start of 13.6 (Claude's proposals, not decided): orange while days are
-  left, red and blinking from the 1st; the words («۵ روز تا شارژ سرور», «سرور شارژ نشده»); the
-  confirmation kept in the database with who and when, so Staff never see it and a second browser
-  agrees.
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand, and a sent one that
   **Kavenegar cancelled** (`13`: it never reached the phone and its cost was given back; decided
   with the developer, 1405/08/01, task 10.16). A delivered, not delivered or blocked one cannot be
@@ -2702,7 +2690,24 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     رد شد» until they ask again. A «تمدید» the trainer makes on «برنامهٔ ثابت» answers a waiting
     request too.
   - **No money in the app**: the member pays as before, to the trainer or at the desk.
-  - **Ending the coaching closes a waiting request.**
+  - **Ending the coaching closes a waiting request**, however it ends: the member or the trainer
+    ends it, another trainer takes the member over, or the Owner stops the trainer.
+  - **Decided with 15.7o's plan** (1405/08/28; *proposed by Claude, accepted by the developer*):
+    - **«درخواست تمدید رد شد» shows only while the last day is the one asked about**: a «تمدید» or a
+      «ویرایش» that moves the last day afterwards hides it, as it hides the button once more than
+      *N* days are left.
+    - **A «ویرایش دوره» that moves the last day later answers a waiting request**, as a «تمدید»
+      does; one that moves it earlier leaves the request waiting for the trainer's answer.
+    - **A member the desk deactivates**: their waiting request is left out of «درخواست‌ها» and
+      cannot be answered there until the desk activates them again, as a request to be a trainer
+      (*A member and their trainer*); they cannot ask meanwhile, their area being shut. A «تمدید»
+      on «برنامهٔ ثابت» still answers it.
+    - **Asking needs no confirmation and has no daily limit**: it costs no SMS, and it can be taken
+      back. «رد کردن» asks nothing either, since the member may ask again.
+    - **The member is not told of a renewal by a card**: the waiting line goes, and «مربی من» shows
+      the new days left.
+    - The request is kept, never deleted, with the last day it was asked about; everything here is
+      in the audit log as «سیستم» (§11), as the site's other actions.
 - **The period's last days (پیامک پایان دوره)** (*decided by the developer*, 1405/08/24, in place
   of "no SMS for it"; the details proposed by Claude and accepted):
   - **One SMS to the student** when the coaching has **at most *N* days left** (its last day counts
@@ -2720,6 +2725,11 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     درخواست تمدید بده.» then «باشگاه پاسارگاد» and «لغو11» on their own lines. *{name}* is the
     member's first name (§10), *{days}* the real days left.
   - **No SMS to the trainer**: they see the mark in «شاگردان من» from the same day (below).
+  - **Built with 15.7n** (1405/08/28; *proposed by Claude with the plan, accepted by the developer*):
+    *N* is never empty (§10 *SMS settings*); the trainer's name keeps its first 3 words, as in the
+    cancelled session's SMS, so a long name cannot make it longer still (the text is already three
+    SMS parts, `docs/sms-texts.md`); "the last period" is the link's period that ends latest. The text points to «درخواست تمدید», which comes with 15.7o, so
+    15.7n is released with 15.7o, or the Owner leaves the kind off until then (it starts off).
 - **The fixed program ends on the period's last day or before** (it replaces the 8-week default:
   the last date is the period's by default, never past the timetable's 12 weeks). A period that is
   over takes no program until «تمدید». A renewal does not move the program on by itself: the trainer
@@ -2748,6 +2758,13 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     active ones.
   - **On the home**, the card «شاگردان من (n)» counts the active ones only, and «رسیدگی می‌خواهد»
     names only active students (ending within *N* days, or no period given). *Proposed by Claude.*
+  - **Built with 15.7l** (1405/08/28; *proposed by Claude*, for the developer to confirm): the
+    page's title «شاگردان من (n)» counts the active ones too, as the home's card does; while the
+    search finds someone among the inactive ones, the closed part opens by itself, so a match is
+    never hidden; with no active student the page says «شاگرد فعالی ندارید.» above the closed part.
+    A deactivated member (§2) stays in the part their period puts them in, with the «غیرفعال» of
+    their membership beside the name as before. Since 15.7n, «ending within *N* days» is the SMS
+    settings' *N*, sent with the list (`periodSoonDays`), in place of the 3 days of 15.7h.
 
 ### The member's own records (15.5)
 - **The member sees in the app everything the panel's profile holds about them, except the SMS
@@ -2948,7 +2965,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     view keeps them.
   - **Per student and per month**: each session of the student in a Jalali month, with its state
     and the month's totals. Sessions with an earlier trainer show too, with that trainer's name
-    (*A member and their trainer*: a new trainer sees the earlier attendance).
+    (*A member and their trainer*: a new trainer sees the earlier attendance). «زودتر از موعد» has
+    a box of its own in the totals, beside on time (*proposed by Claude, accepted by the
+    developer*, 1405/08/28, 15.7m).
   - **The member does not see their monthly attendance yet**: left for later, only if asked.
 - **More for the trainer, decided with 15.7d** (*decided by the developer*, 1405/08/19, from the
   developer's list for attendance; the points marked *proposed* were Claude's and the developer

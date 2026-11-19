@@ -114,6 +114,7 @@ describe("the coaching period", () => {
       "GET /api/site/coaching/students": () =>
         json(200, {
           requests: [],
+          periodSoonDays: 7,
           students: [
             ...names.map((fullName) => studentRow({ fullName, periodEndsOn: addDays(now, 1) })),
             studentRow({ fullName: "ت دور", periodEndsOn: addDays(now, 20) }),
@@ -132,6 +133,7 @@ describe("the coaching period", () => {
       "GET /api/site/coaching/students": () =>
         json(200, {
           requests: [],
+          periodSoonDays: 7,
           students: [
             studentRow({ fullName: "الف قدیمی", periodEndsOn: null }),
             studentRow({ fullName: "ب دو روز", periodEndsOn: addDays(now, 1) }),
@@ -142,18 +144,159 @@ describe("the coaching period", () => {
     });
     renderSite("/", { access: siteAccess(trainerOnly) });
 
-    // The home's card counts them; the marks are on «شاگردان من».
-    expect(await screen.findByText("دورهٔ ۳ شاگرد رسیدگی می‌خواهد.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("link", { name: "شاگردان من (۴)" }));
+    // The home's card counts the active ones and names those that need the trainer (15.7l: the
+    // one whose period is over is inactive, so neither counted nor named).
+    expect(
+      await screen.findByText("دورهٔ الف قدیمی و ب دو روز رسیدگی می‌خواهد."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: "شاگردان من (۳)" }));
 
     const rows = within(await screen.findByRole("list", { name: "شاگردان من" })).getAllByRole(
       "listitem",
     );
+    expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent("دوره را مشخص کنید");
     expect(rows[1]).toHaveTextContent("۲ روز");
     expect(rows[1]).not.toHaveTextContent("مانده");
-    expect(rows[2]).toHaveTextContent("دوره تمام شد");
-    expect(rows[3]).not.toHaveTextContent(/روز|دوره/);
+    expect(rows[2]).not.toHaveTextContent(/روز|دوره/);
+
+    fireEvent.click(screen.getByRole("button", { name: "غیرفعال (۱)" }));
+    expect(
+      within(screen.getByRole("list", { name: "شاگردان غیرفعال" })).getByRole("listitem"),
+    ).toHaveTextContent("دوره تمام شد");
+  });
+
+  it.each([
+    [7, ["۷ روز", null]],
+    [10, ["۷ روز", "۸ روز"]],
+  ])(
+    "Students_MarkFrom%sDaysLeft_FollowsTheSmsSettingsNumber",
+    async (periodSoonDays, expected) => {
+      // 15.7n: the days the student's SMS goes from, sent by the API, in place of the 3 days of 15.7h.
+      const now = gymToday();
+      mockApi({
+        "GET /api/site/me": () => json(200, trainerOnly),
+        "GET /api/site/coaching/students": () =>
+          json(200, {
+            requests: [],
+            periodSoonDays,
+            students: [
+              studentRow({ fullName: "الف هفت", periodEndsOn: addDays(now, 6) }),
+              studentRow({ fullName: "ب هشت", periodEndsOn: addDays(now, 7) }),
+            ],
+          }),
+      });
+      renderSite("/students", { access: siteAccess(trainerOnly) });
+
+      const rows = within(await screen.findByRole("list", { name: "شاگردان من" })).getAllByRole(
+        "listitem",
+      );
+      expected.forEach((mark, index) => {
+        if (mark === null) {
+          expect(rows[index]).not.toHaveTextContent(/روز/);
+        } else {
+          expect(rows[index]).toHaveTextContent(mark);
+        }
+      });
+    },
+  );
+
+  it("Students_PeriodOver_InTheClosedInactivePartThatOpensOnATap", async () => {
+    const now = gymToday();
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/coaching/students": () =>
+        json(200, {
+          requests: [],
+          periodSoonDays: 7,
+          students: [
+            studentRow({ fullName: "سارا فعال", periodEndsOn: addDays(now, 20) }),
+            // Its last day is today: still running, so still active.
+            studentRow({ fullName: "لیلا روز آخر", periodEndsOn: now }),
+            studentRow({ fullName: "مینا تمام", periodEndsOn: addDays(now, -3) }),
+            studentRow({ fullName: "رضا تمام", periodEndsOn: addDays(now, -40) }),
+          ],
+        }),
+    });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
+
+    // The title counts the active ones, as the home's card does.
+    expect(
+      await screen.findByRole("heading", { name: "شاگردان من (۲)", level: 1 }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("list", { name: "شاگردان من" })).getAllByRole("listitem"),
+    ).toHaveLength(2);
+
+    const part = screen.getByRole("button", { name: "غیرفعال (۲)" });
+    expect(part).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("list", { name: "شاگردان غیرفعال" })).not.toBeInTheDocument();
+
+    fireEvent.click(part);
+
+    expect(part).toHaveAttribute("aria-expanded", "true");
+    const inactive = within(screen.getByRole("list", { name: "شاگردان غیرفعال" }));
+    expect(inactive.getAllByRole("listitem")).toHaveLength(2);
+    expect(inactive.getByText("مینا تمام")).toBeInTheDocument();
+    // Still the trainer's students: their attendance and program open as the active ones' do.
+    expect(inactive.getByRole("link", { name: "برنامهٔ ثابت رضا تمام" })).toBeInTheDocument();
+
+    fireEvent.click(part);
+    expect(screen.queryByRole("list", { name: "شاگردان غیرفعال" })).not.toBeInTheDocument();
+  });
+
+  it("Students_SearchFindsAnInactiveStudent_ShowsThemWithoutATap", async () => {
+    const now = gymToday();
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/coaching/students": () =>
+        json(200, {
+          requests: [],
+          periodSoonDays: 7,
+          students: [
+            studentRow({ fullName: "سارا فعال", periodEndsOn: addDays(now, 20) }),
+            studentRow({ fullName: "مینا تمام", periodEndsOn: addDays(now, -3) }),
+            studentRow({ fullName: "رضا تمام", periodEndsOn: addDays(now, -40) }),
+          ],
+        }),
+    });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
+    await screen.findByRole("list", { name: "شاگردان من" });
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "جست‌وجوی شاگرد" }), {
+      target: { value: "مینا" },
+    });
+
+    expect(screen.queryByRole("list", { name: "شاگردان من" })).not.toBeInTheDocument();
+    expect(screen.queryByText("شاگرد فعالی ندارید.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "غیرفعال (۱)" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    const inactive = within(screen.getByRole("list", { name: "شاگردان غیرفعال" }));
+    expect(inactive.getAllByRole("listitem")).toHaveLength(1);
+    expect(inactive.getByText("مینا تمام")).toBeInTheDocument();
+  });
+
+  it("Students_EveryPeriodOver_SaysNoActiveStudentAboveTheClosedPart", async () => {
+    const now = gymToday();
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/coaching/students": () =>
+        json(200, {
+          requests: [],
+          periodSoonDays: 7,
+          students: [studentRow({ fullName: "مینا تمام", periodEndsOn: addDays(now, -3) })],
+        }),
+    });
+    renderSite("/", { access: siteAccess(trainerOnly) });
+
+    expect(await screen.findByRole("link", { name: "شاگردان من (۰)" })).toBeInTheDocument();
+    expect(screen.queryByText(/رسیدگی می‌خواهد/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: "شاگردان من (۰)" }));
+
+    expect(await screen.findByText("شاگرد فعالی ندارید.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "غیرفعال (۱)" })).toBeInTheDocument();
   });
 
   it("MyTrainer_WithAPeriod_ShowsItsLastDayAndTheDaysLeft", async () => {

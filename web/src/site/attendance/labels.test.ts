@@ -62,7 +62,8 @@ describe("attendance labels", () => {
   });
 
   it("FormatEarlyAndLate_SayHowMuch", () => {
-    expect(formatEarly(10)).toBe("۱۰ دقیقه زودتر آمد");
+    expect(formatEarly(30)).toBe("۳۰ دقیقه زودتر از موعد");
+    expect(formatEarly(65)).toBe("۱ ساعت و ۵ دقیقه زودتر از موعد");
     expect(formatLate(25)).toBe("۲۵ دقیقه تأخیر");
   });
 });

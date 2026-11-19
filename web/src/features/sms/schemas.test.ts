@@ -38,6 +38,7 @@ const settings: SmsSettings = {
   broadcast: { enabled: true },
   trainerRequest: { enabled: true, morningSendTime: "10:00:00" },
   sessionCancelled: { enabled: true, openingSendTime: "08:00:00", daysAhead: 7 },
+  coachingPeriodEnding: { enabled: false, threshold: 7, sendTime: null },
   version: 3,
 };
 

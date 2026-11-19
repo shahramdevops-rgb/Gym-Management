@@ -1,4 +1,5 @@
 using Gym.Application.Notifications;
+using Gym.Domain.Coaching;
 using Gym.Domain.Members;
 using Gym.Domain.Notifications;
 using Gym.Domain.Payables;
@@ -23,7 +24,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest', 'SessionCancelled')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest', 'SessionCancelled', 'CoachingPeriodEnding')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -66,6 +67,9 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
                 "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'SessionCancelled' AND member_id IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
+                "(kind = 'CoachingPeriodEnding' AND member_id IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
                 "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL)");
 
             // Task 15.4c: the trainer's SMS always names its trainer, and no other kind does. Apart
@@ -79,6 +83,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             table.HasCheckConstraint(
                 NotificationConstraints.ChangeOnlyForSessionCancelled,
                 "(kind = 'SessionCancelled') = (timetable_change_id IS NOT NULL)");
+
+            // Task 15.7n: the coaching period's SMS always names its link and last day, and no other
+            // kind names either. Apart from the check above, for the same reason.
+            table.HasCheckConstraint(
+                NotificationConstraints.LinkOnlyForCoachingPeriodEnding,
+                "(kind = 'CoachingPeriodEnding') = (trainer_link_id IS NOT NULL) " +
+                "AND (kind = 'CoachingPeriodEnding') = (period_ends_on IS NOT NULL)");
 
             table.HasCheckConstraint(
                 NotificationConstraints.SentHasProviderId,
@@ -115,6 +126,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.HasOne<Payable>().WithMany().HasForeignKey(notification => notification.PayableId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<SmsBroadcast>().WithMany().HasForeignKey(notification => notification.BroadcastId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Trainer>().WithMany().HasForeignKey(notification => notification.TrainerId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<TrainerLink>().WithMany().HasForeignKey(notification => notification.TrainerLinkId).OnDelete(DeleteBehavior.Restrict);
 
         // Each event once (BUSINESS_RULES.md §10). The kind is in the first index because a
         // subscription can get each of its kinds (running out, few sessions, receipt, welcome) once.
@@ -190,6 +202,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             .IsUnique()
             .HasFilter("kind = 'SessionCancelled'")
             .HasDatabaseName(NotificationConstraints.OneSessionCancelledPerMemberAndChange);
+
+        // Once per link and last day (task 15.7n): a «تمدید» or a «ویرایش» that moves the last day
+        // earns the new one its own, when it comes near.
+        builder.HasIndex(notification => new { notification.TrainerLinkId, notification.PeriodEndsOn })
+            .IsUnique()
+            .HasFilter("kind = 'CoachingPeriodEnding'")
+            .HasDatabaseName(NotificationConstraints.OneCoachingPeriodEndingPerLinkAndLastDay);
 
         builder.Property(notification => notification.Version).IsRowVersion();
     }

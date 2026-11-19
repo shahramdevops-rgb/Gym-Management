@@ -14,6 +14,9 @@ namespace Gym.Domain.Notifications;
 /// <b>Empty and off until the Owner decides.</b> Every SMS costs money, so there are no default
 /// numbers: a kind is filled in and then turned on, and it cannot be on while a field is empty. A kind
 /// that is off may be left half filled or emptied again; whatever is filled must still be in range.
+/// One number is the exception: the coaching period's last days (task 15.7n) starts at
+/// <see cref="DefaultCoachingPeriodEndingDays"/> and is never empty, since the trainer's mark in
+/// «شاگردان من» reads it whether the SMS is on or off (§15 <i>The coaching period</i>).
 /// </para>
 /// <para>
 /// <b>Stored flat.</b> One column per field, so each check constraint reads like the rule it repeats.
@@ -61,6 +64,16 @@ public sealed class SmsSettings : Entity
     /// developer, 1405/08/12, task 15.6c); a later one is told in the app only.
     /// </summary>
     public const int SessionCancelledDaysAhead = 7;
+
+    /// <summary>
+    /// The coaching period's last days until the Owner changes it (the developer, 1405/08/24, task
+    /// 15.7n): the SMS's <i>N</i>, and the trainer's mark in «شاگردان من» from the same day.
+    /// </summary>
+    public const int DefaultCoachingPeriodEndingDays = 7;
+
+    /// <summary>The coaching period's last days as the kind starts: off, its 7 days, no time.</summary>
+    public static readonly SmsKindSettings CoachingPeriodEndingAtStart =
+        new(Enabled: false, Threshold: DefaultCoachingPeriodEndingDays, SendTime: null);
 
     /// <summary>
     /// The welcome back goes this long after the check-in (the developer, 1405/08/04, task 10.20), so
@@ -191,6 +204,21 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public bool SessionCancelledEnabled { get; private set; }
 
+    /// <summary>
+    /// The student's SMS when their coaching period has a few days left (§15 <i>The coaching period</i>,
+    /// task 15.7n), by a daily run like the other members' kinds.
+    /// </summary>
+    public bool CoachingPeriodEndingEnabled { get; private set; }
+
+    /// <summary>
+    /// Days left, 3 to 14, the last day counting as one: sent once the coaching has at most this many.
+    /// Never empty (<see cref="DefaultCoachingPeriodEndingDays"/> to start): the trainer's mark in
+    /// «شاگردان من» shows from the same day, on or off.
+    /// </summary>
+    public int CoachingPeriodEndingDays { get; private set; } = DefaultCoachingPeriodEndingDays;
+
+    public TimeOnly? CoachingPeriodEndingSendTime { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -277,6 +305,7 @@ public sealed class SmsSettings : Entity
         NotificationKind.PayableDue => (0, 30),
         NotificationKind.DebtReminder => (1, 90),
         NotificationKind.Absence => (7, 60),
+        NotificationKind.CoachingPeriodEnding => (3, 14),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No range is set for this kind."),
     };
 
@@ -308,6 +337,8 @@ public sealed class SmsSettings : Entity
             DebtReminderEnabled, DebtReminderDaysAfter, DebtReminderSendTime),
         NotificationKind.Absence => new(
             AbsenceEnabled, AbsenceDaysAway, AbsenceSendTime),
+        NotificationKind.CoachingPeriodEnding => new(
+            CoachingPeriodEndingEnabled, CoachingPeriodEndingDays, CoachingPeriodEndingSendTime),
 
         // No number; its time is chosen like any other kind's (task 10.17), from 08:00 to 23:45.
         NotificationKind.DailyReport => new(
@@ -353,6 +384,7 @@ public sealed class SmsSettings : Entity
     /// <param name="broadcastEnabled">The broadcast's switch: nothing to fill in (task 10.13).</param>
     /// <param name="trainerRequestEnabled">The trainer's SMS switch: nothing to fill in (task 15.4c).</param>
     /// <param name="sessionCancelledEnabled">The cancelled session's SMS switch: nothing to fill in (task 15.6c).</param>
+    /// <param name="coachingPeriodEnding">The coaching period's last days: switch, days (never empty) and time (task 15.7n).</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -371,7 +403,8 @@ public sealed class SmsSettings : Entity
         SmsKindSettings absence,
         bool broadcastEnabled,
         bool trainerRequestEnabled,
-        bool sessionCancelledEnabled)
+        bool sessionCancelledEnabled,
+        SmsKindSettings coachingPeriodEnding)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
@@ -379,6 +412,7 @@ public sealed class SmsSettings : Entity
         ArgumentNullException.ThrowIfNull(payableDue);
         ArgumentNullException.ThrowIfNull(debtReminder);
         ArgumentNullException.ThrowIfNull(absence);
+        ArgumentNullException.ThrowIfNull(coachingPeriodEnding);
 
         var phone = Normalized(ownerPhone, nameof(ownerPhone));
         var reportPhone = Normalized(dailyReportPhone, nameof(dailyReportPhone));
@@ -393,10 +427,14 @@ public sealed class SmsSettings : Entity
             ?? CheckSendTime(debtReminder.SendTime)
             ?? CheckDebtReminderMinAmount(debtReminderMinAmount)
             ?? CheckDebtReminderComplete(debtReminder, debtReminderMinAmount)
-            ?? Check(NotificationKind.Absence, absence, phone);
-        if (error is not null)
+            ?? Check(NotificationKind.Absence, absence, phone)
+            ?? Check(NotificationKind.CoachingPeriodEnding, coachingPeriodEnding, phone);
+
+        // CheckThreshold already refuses an empty number for the period's last days; the pattern
+        // only names the checked value.
+        if (error is not null || coachingPeriodEnding.Threshold is not { } periodEndingDays)
         {
-            return Result.Failure(error);
+            return Result.Failure(error ?? SmsSettingsErrors.CoachingPeriodEndingDaysOutOfRange);
         }
 
         Enabled = enabled;
@@ -444,17 +482,24 @@ public sealed class SmsSettings : Entity
         TrainerRequestEnabled = trainerRequestEnabled;
         SessionCancelledEnabled = sessionCancelledEnabled;
 
+        CoachingPeriodEndingEnabled = coachingPeriodEnding.Enabled;
+        CoachingPeriodEndingDays = periodEndingDays;
+        CoachingPeriodEndingSendTime = coachingPeriodEnding.SendTime;
+
         return Result.Success();
     }
 
     // ---- The checks, shared with the Application validator so the form hears the same answer ----
 
-    /// <summary>An empty number is allowed (the kind may be off); a filled one must be in the kind's range.</summary>
+    /// <summary>
+    /// An empty number is allowed (the kind may be off); a filled one must be in the kind's range. The
+    /// coaching period's last days is never empty (task 15.7n): the trainer's mark reads it.
+    /// </summary>
     public static Error? CheckThreshold(NotificationKind kind, int? threshold)
     {
         if (threshold is null)
         {
-            return null;
+            return kind == NotificationKind.CoachingPeriodEnding ? SmsSettingsErrors.CoachingPeriodEndingDaysOutOfRange : null;
         }
 
         var (min, max) = ThresholdRange(kind);
@@ -470,6 +515,7 @@ public sealed class SmsSettings : Entity
             NotificationKind.Birthday => SmsSettingsErrors.BirthdayDaysOutOfRange,
             NotificationKind.DebtReminder => SmsSettingsErrors.DebtReminderDaysOutOfRange,
             NotificationKind.Absence => SmsSettingsErrors.AbsenceDaysOutOfRange,
+            NotificationKind.CoachingPeriodEnding => SmsSettingsErrors.CoachingPeriodEndingDaysOutOfRange,
             _ => SmsSettingsErrors.PayableDueDaysOutOfRange,
         };
     }

@@ -21,13 +21,23 @@ public sealed class SmsSettingsTests
 
         settings.Enabled.ShouldBeFalse();
         settings.OwnerPhone.ShouldBeNull();
-        foreach (var kind in Enum.GetValues<NotificationKind>().Where(kind => kind != NotificationKind.DailyReport))
+        foreach (var kind in Enum.GetValues<NotificationKind>()
+            .Where(kind => kind is not (NotificationKind.DailyReport or NotificationKind.CoachingPeriodEnding)))
         {
             settings.For(kind).ShouldBe(SmsKindSettings.Off);
         }
 
         settings.DailyReportEnabled.ShouldBeFalse();
         settings.DailyReportPhone.ShouldBeNull();
+    }
+
+    [Fact]
+    public void NewSettings_CoachingPeriodEnding_IsOffWithItsSevenDays()
+    {
+        var settings = Empty();
+
+        settings.For(NotificationKind.CoachingPeriodEnding).ShouldBe(new SmsKindSettings(false, 7, null));
+        SmsSettings.CoachingPeriodEndingAtStart.ShouldBe(new SmsKindSettings(false, 7, null));
     }
 
     // ---- Saving ----
@@ -55,7 +65,8 @@ public sealed class SmsSettingsTests
             absence: new(true, 14, new TimeOnly(11, 30)),
             broadcastEnabled: true,
             trainerRequestEnabled: true,
-            sessionCancelledEnabled: true);
+            sessionCancelledEnabled: true,
+            coachingPeriodEnding: new(true, 10, new TimeOnly(12, 0)));
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -83,7 +94,62 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.TrainerRequest).ShouldBe(new SmsKindSettings(true, null, null));
         settings.SessionCancelledEnabled.ShouldBeTrue();
         settings.For(NotificationKind.SessionCancelled).ShouldBe(new SmsKindSettings(true, null, null));
+        settings.CoachingPeriodEndingEnabled.ShouldBeTrue();
+        settings.CoachingPeriodEndingDays.ShouldBe(10);
+        settings.For(NotificationKind.CoachingPeriodEnding).ShouldBe(new SmsKindSettings(true, 10, new TimeOnly(12, 0)));
     }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(14)]
+    public void Update_CoachingPeriodEndingDaysAtTheEdges_Succeeds(int days)
+    {
+        var settings = Empty();
+
+        Save(settings, coachingPeriodEnding: new(true, days, Ten)).IsSuccess.ShouldBeTrue();
+
+        settings.CoachingPeriodEndingDays.ShouldBe(days);
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(15)]
+    [InlineData(null)]
+    public void Update_CoachingPeriodEndingDaysOutOfRangeOrEmpty_FailsAndChangesNothing(int? days)
+    {
+        var settings = Empty();
+
+        var result = Save(settings, enabled: true, coachingPeriodEnding: new(false, days, null));
+
+        result.Error.ShouldBe(SmsSettingsErrors.CoachingPeriodEndingDaysOutOfRange);
+        settings.Enabled.ShouldBeFalse();
+        settings.CoachingPeriodEndingDays.ShouldBe(SmsSettings.DefaultCoachingPeriodEndingDays);
+    }
+
+    [Fact]
+    public void Update_CoachingPeriodEndingOnWithNoTime_FailsAsIncomplete()
+    {
+        var settings = Empty();
+
+        var result = Save(settings, coachingPeriodEnding: new(true, 7, null));
+
+        result.Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
+    }
+
+    [Fact]
+    public void Update_CoachingPeriodEndingOffWithItsDays_KeepsTheDaysForTheTrainersMark()
+    {
+        var settings = Empty();
+
+        Save(settings, coachingPeriodEnding: new(false, 5, null)).IsSuccess.ShouldBeTrue();
+
+        settings.CoachingPeriodEndingEnabled.ShouldBeFalse();
+        settings.CoachingPeriodEndingDays.ShouldBe(5);
+    }
+
+    [Fact]
+    public void ThresholdRange_CoachingPeriodEnding_IsThreeToFourteen() =>
+        SmsSettings.ThresholdRange(NotificationKind.CoachingPeriodEnding).ShouldBe((3, 14));
 
     [Fact]
     public void Update_KindOffAndHalfFilled_Succeeds()
@@ -692,7 +758,8 @@ public sealed class SmsSettingsTests
         SmsKindSettings? absence = null,
         bool broadcastEnabled = false,
         bool trainerRequestEnabled = false,
-        bool sessionCancelledEnabled = false) =>
+        bool sessionCancelledEnabled = false,
+        SmsKindSettings? coachingPeriodEnding = null) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
@@ -711,7 +778,8 @@ public sealed class SmsSettingsTests
             absence ?? SmsKindSettings.Off,
             broadcastEnabled,
             trainerRequestEnabled,
-            sessionCancelledEnabled);
+            sessionCancelledEnabled,
+            coachingPeriodEnding ?? SmsSettings.CoachingPeriodEndingAtStart);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the

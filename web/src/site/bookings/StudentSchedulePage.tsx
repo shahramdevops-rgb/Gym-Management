@@ -7,13 +7,6 @@ import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 
@@ -27,8 +20,10 @@ import {
   periodMinDays,
   periodMinDaysLeft,
   periodState,
+  renewQuestion,
 } from "../coaching/period";
 import { PeriodDaysForm } from "../coaching/PeriodDaysForm";
+import { PeriodQuestion } from "../coaching/PeriodQuestion";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
@@ -531,7 +526,7 @@ function PeriodCard({ student }: { student: StudentSchedule }) {
         {asking !== null && mode === "renew" && (
           <PeriodQuestion
             title="تمدید دوره"
-            question={`دورهٔ مربی‌گری ${student.fullName} تا ${formatDate(periodEnd(renewStartsOn, asking))} تمدید شود؟`}
+            question={renewQuestion(student.fullName, periodEnd(renewStartsOn, asking))}
             confirmLabel="بله، تمدید"
             pending={renew.isPending}
             onConfirm={() =>
@@ -554,46 +549,6 @@ function PeriodCard({ student }: { student: StudentSchedule }) {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * The question before «تمدید» and «ویرایش دوره», shown once the days are typed. Not the site's
- * `ConfirmDialog`: that opens from its own button and says «yes» in red, for changes that cannot be
- * taken back; this one follows a form and says «yes» in the plain colour.
- */
-function PeriodQuestion({
-  title,
-  question,
-  confirmLabel,
-  pending,
-  onConfirm,
-  onCancel,
-}: {
-  title: string;
-  question: string;
-  confirmLabel: string;
-  pending: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <Dialog open onOpenChange={(open) => !open && !pending && onCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{question}</DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-wrap gap-2">
-          <Button disabled={pending} onClick={onConfirm}>
-            {pending ? "در حال ثبت…" : confirmLabel}
-          </Button>
-          <Button variant="outline" disabled={pending} onClick={onCancel}>
-            انصراف
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 

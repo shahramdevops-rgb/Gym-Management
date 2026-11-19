@@ -61,7 +61,7 @@ public sealed class RequestTrainerHandler(IAppDbContext db, IGymCalendar calenda
         // A second press, or the app sent again: the request is already there, and counts once.
         if (waiting?.TrainerId == trainer.Id)
         {
-            return await MyTrainerResponse.ForAsync(db, member.Id, cancellationToken);
+            return await MyTrainerResponse.ForAsync(db, member.Id, calendar.Today(), cancellationToken);
         }
 
         var today = calendar.Today();
@@ -88,6 +88,6 @@ public sealed class RequestTrainerHandler(IAppDbContext db, IGymCalendar calenda
 
         await trainerRequestSms.QueueAsync(created.Value.Id, CancellationToken.None);
 
-        return await MyTrainerResponse.ForAsync(db, member.Id, cancellationToken);
+        return await MyTrainerResponse.ForAsync(db, member.Id, calendar.Today(), cancellationToken);
     }
 }

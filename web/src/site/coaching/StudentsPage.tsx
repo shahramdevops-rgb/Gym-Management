@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Link, Navigate } from "react-router";
 
@@ -10,14 +10,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, gymToday, toPersianDigits } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { useSiteMe } from "../auth/api";
 import { Person } from "../components/Person";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
 import { useStudents, type Students } from "./api";
-import { periodMark, periodState } from "./period";
+import { isActiveStudent, periodMark, periodState, soonDaysOf } from "./period";
 import { matchesStudent } from "./studentSearch";
+
+type Student = Students["students"][number];
 
 /**
  * The trainer's «شاگردان من», a page of its own since 1405/08/20 (the developer: the home showed the
@@ -26,8 +29,13 @@ import { matchesStudent } from "./studentSearch";
  * attendance (15.7) and «برنامه» their «برنامهٔ ثابت», the fixed weekly sessions (15.6b; the
  * button's short name, the developer's, 1405/08/20). A search box finds a
  * student by name or phone (15.7d). «پایان مربی‌گری» is at the foot of «برنامهٔ ثابت» (15.7g). A
- * student whose coaching period needs the trainer is marked: not given yet, ending within three
- * days, or over (15.7h).
+ * student whose coaching period needs the trainer is marked: not given yet, ending within the SMS
+ * settings' days for the period's last days (15.7n, three days before it), or over (15.7h).
+ *
+ * In two parts since 15.7l (BUSINESS_RULES.md §15 *«شاگردان من» in two parts*, so the list does not
+ * fill up): the active students, and under them a closed part «غیرفعال (n)», those whose period is
+ * over and was not renewed, which opens on a tap (no tab). The title counts the active ones, as the
+ * home's card does. The search looks in both, and opens the closed part while it finds someone there.
  */
 export function StudentsPage() {
   const me = useSiteMe();
@@ -39,6 +47,9 @@ export function StudentsPage() {
   }
 
   const list = students.data?.students;
+  const soonDays = students.data === undefined ? 0 : soonDaysOf(students.data);
+  const today = gymToday();
+  const active = list?.filter((student) => isActiveStudent(student.periodEndsOn, today));
 
   return (
     <SiteFrame>
@@ -49,7 +60,7 @@ export function StudentsPage() {
           </Link>
         </Button>
         <h1 className="text-xl font-bold">
-          شاگردان من{list === undefined ? "" : ` (${toPersianDigits(list.length)})`}
+          شاگردان من{active === undefined ? "" : ` (${toPersianDigits(active.length)})`}
         </h1>
       </div>
 
@@ -65,7 +76,13 @@ export function StudentsPage() {
             {list.length === 0 ? (
               <p className="text-sm text-muted-foreground">هنوز شاگردی ندارید.</p>
             ) : (
-              <StudentList students={list} query={query} onQuery={setQuery} />
+              <StudentParts
+                students={list}
+                today={today}
+                soonDays={soonDays}
+                query={query}
+                onQuery={setQuery}
+              />
             )}
           </CardContent>
         </Card>
@@ -74,17 +91,28 @@ export function StudentsPage() {
   );
 }
 
-function StudentList({
+function StudentParts({
   students,
+  today,
+  soonDays,
   query,
   onQuery,
 }: {
   students: Students["students"];
+  today: string;
+  soonDays: number;
   query: string;
   onQuery: (query: string) => void;
 }) {
+  const [inactiveOpen, setInactiveOpen] = useState(false);
+
+  const searching = query.trim() !== "";
   const found = students.filter((student) => matchesStudent(student, query));
-  const today = gymToday();
+  const active = found.filter((student) => isActiveStudent(student.periodEndsOn, today));
+  const inactive = found.filter((student) => !isActiveStudent(student.periodEndsOn, today));
+  // While searching, a match among the inactive ones is shown without a tap: hidden in a closed
+  // part, the search would seem to have found nothing.
+  const showInactive = inactiveOpen || searching;
 
   return (
     <>
@@ -95,48 +123,95 @@ function StudentList({
         value={query}
         onChange={(event) => onQuery(event.target.value)}
       />
+
       {found.length === 0 ? (
         <p className="text-sm text-muted-foreground">شاگردی با این نام یا شماره پیدا نشد.</p>
+      ) : active.length > 0 ? (
+        <StudentRows label="شاگردان من" students={active} today={today} soonDays={soonDays} />
       ) : (
-        <ul aria-label="شاگردان من" className="divide-y">
-          {found.map((student) => (
-            // The buttons stay on the student's line whatever its length (the developer, 1405/08/20):
-            // the name and its marks wrap in their own column instead.
-            <li
-              key={student.memberId}
-              className="flex items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
-            >
-              <div className="min-w-0 flex-1">
-                <Person
-                  fullName={student.fullName}
-                  phoneNumber={student.phoneNumber}
-                  detail={<StudentDetail student={student} today={today} />}
-                  inactive={!student.isActive}
-                />
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <Button asChild variant="secondary" size="sm">
-                  <Link
-                    to={sitePaths.studentAttendance(student.memberId)}
-                    aria-label={`حضور ${student.fullName}`}
-                  >
-                    حضور
-                  </Link>
-                </Button>
-                <Button asChild variant="secondary" size="sm">
-                  <Link
-                    to={sitePaths.student(student.memberId)}
-                    aria-label={`برنامهٔ ثابت ${student.fullName}`}
-                  >
-                    برنامه
-                  </Link>
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        !searching && <p className="text-sm text-muted-foreground">شاگرد فعالی ندارید.</p>
+      )}
+
+      {inactive.length > 0 && (
+        <div className="border-t pt-3">
+          <button
+            type="button"
+            aria-expanded={showInactive}
+            aria-controls="inactive-students"
+            onClick={() => setInactiveOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-2 rounded-md py-1 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:outline-none"
+          >
+            غیرفعال ({toPersianDigits(inactive.length)})
+            <ChevronDown
+              aria-hidden
+              className={cn("size-4 transition-transform", showInactive && "rotate-180")}
+            />
+          </button>
+          {showInactive && (
+            <div id="inactive-students" className="pt-3">
+              <StudentRows
+                label="شاگردان غیرفعال"
+                students={inactive}
+                today={today}
+                soonDays={soonDays}
+              />
+            </div>
+          )}
+        </div>
       )}
     </>
+  );
+}
+
+function StudentRows({
+  label,
+  students,
+  today,
+  soonDays,
+}: {
+  label: string;
+  students: Student[];
+  today: string;
+  soonDays: number;
+}) {
+  return (
+    <ul aria-label={label} className="divide-y">
+      {students.map((student) => (
+        // The buttons stay on the student's line whatever its length (the developer, 1405/08/20):
+        // the name and its marks wrap in their own column instead.
+        <li
+          key={student.memberId}
+          className="flex items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
+        >
+          <div className="min-w-0 flex-1">
+            <Person
+              fullName={student.fullName}
+              phoneNumber={student.phoneNumber}
+              detail={<StudentDetail student={student} today={today} soonDays={soonDays} />}
+              inactive={!student.isActive}
+            />
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button asChild variant="secondary" size="sm">
+              <Link
+                to={sitePaths.studentAttendance(student.memberId)}
+                aria-label={`حضور ${student.fullName}`}
+              >
+                حضور
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link
+                to={sitePaths.student(student.memberId)}
+                aria-label={`برنامهٔ ثابت ${student.fullName}`}
+              >
+                برنامه
+              </Link>
+            </Button>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -144,11 +219,13 @@ function StudentList({
 function StudentDetail({
   student,
   today,
+  soonDays,
 }: {
-  student: Students["students"][number];
+  student: Student;
   today: string;
+  soonDays: number;
 }) {
-  const mark = periodMark(periodState(student.periodEndsOn, today));
+  const mark = periodMark(periodState(student.periodEndsOn, today), soonDays);
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">

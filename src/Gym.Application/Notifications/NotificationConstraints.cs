@@ -56,6 +56,13 @@ public static class NotificationConstraints
     /// </summary>
     public const string OneSessionCancelledPerMemberAndChange = "ix_notifications_one_session_cancelled_per_member_and_change";
 
+    /// <summary>
+    /// One <c>CoachingPeriodEnding</c> per trainer link and last day (BUSINESS_RULES.md §15 <i>The
+    /// coaching period</i>, task 15.7n): a «تمدید» or a «ویرایش» that moves the last day earns the new
+    /// one its own. Shorter than the kind's name: Postgres cuts a name at 63 characters.
+    /// </summary>
+    public const string OneCoachingPeriodEndingPerLinkAndLastDay = "ix_notifications_one_period_ending_per_link_and_last_day";
+
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
 
@@ -64,6 +71,12 @@ public static class NotificationConstraints
 
     /// <summary>Only the cancelled session's SMS names a trainer's save, and it always does (task 15.6c).</summary>
     public const string ChangeOnlyForSessionCancelled = "ck_notifications_change_only_for_session_cancelled";
+
+    /// <summary>
+    /// Only the coaching period's SMS names a trainer link and a last day, and it always names both
+    /// (task 15.7n).
+    /// </summary>
+    public const string LinkOnlyForCoachingPeriodEnding = "ck_notifications_link_only_for_coaching_period_ending";
 
     /// <summary>A sent message has the provider's id and the moment it was sent.</summary>
     public const string SentHasProviderId = "ck_notifications_sent_has_provider_id";

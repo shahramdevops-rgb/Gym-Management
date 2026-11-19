@@ -6,33 +6,40 @@ import { gymToday, toPersianDigits } from "@/lib/format";
 
 import { sitePaths } from "../paths";
 import { useStudents } from "./api";
-import { periodMark, periodState } from "./period";
+import { isActiveStudent, periodMark, periodState, soonDaysOf } from "./period";
 
 /**
  * «شاگردان من» on the trainer's home (BUSINESS_RULES.md §15 *A member and their trainer*, roadmap
  * 15.4b): since 1405/08/20 a card with the count, «شاگردان من (۱۲)», that opens the list on its own
- * page (`StudentsPage`), asked by the developer so the home stays short. Every student is counted,
- * those whose membership is inactive too, as the list shows them. The students whose coaching
- * period needs the trainer (15.7h: ending within three days, over, or not given) are named under
- * it, since their marks are on the page now: «دورهٔ مینا رضایی رسیدگی می‌خواهد.», two names at
- * most, then only how many («دورهٔ ۳ شاگرد رسیدگی می‌خواهد.»; the wording the developer's,
- * 1405/08/20).
+ * page (`StudentsPage`), asked by the developer so the home stays short. Since 15.7l it counts the
+ * active students only (§15 *«شاگردان من» in two parts*: the coaching runs, or the student is from
+ * before the periods), those whose membership is inactive too; one whose period is over is in the
+ * page's closed part «غیرفعال». The active students whose coaching period needs the trainer (ending
+ * within the SMS settings' days, 15.7n, or not given) are named under it, since their marks are on
+ * the page:
+ * «دورهٔ مینا رضایی رسیدگی می‌خواهد.», two names at most, then only how many («دورهٔ ۳ شاگرد رسیدگی
+ * می‌خواهد.»; the wording the developer's, 1405/08/20).
  *
  * The count comes from the same read as the waiting requests' card (`useStudents`), which the home
  * makes anyway, so the card costs no request of its own.
  */
 export function TrainerArea() {
   const students = useStudents();
-  const list = students.data?.students;
   const today = gymToday();
+  const active = students.data?.students.filter((student) =>
+    isActiveStudent(student.periodEndsOn, today),
+  );
+  const soonDays = students.data === undefined ? 0 : soonDaysOf(students.data);
   const needing =
-    list?.filter((student) => periodMark(periodState(student.periodEndsOn, today)) !== null) ?? [];
+    active?.filter(
+      (student) => periodMark(periodState(student.periodEndsOn, today), soonDays) !== null,
+    ) ?? [];
 
   return (
     <Link
       to={sitePaths.students}
       aria-label={
-        list === undefined ? "شاگردان من" : `شاگردان من (${toPersianDigits(list.length)})`
+        active === undefined ? "شاگردان من" : `شاگردان من (${toPersianDigits(active.length)})`
       }
       className="block rounded-xl focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:outline-none"
     >
@@ -40,10 +47,10 @@ export function TrainerArea() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle role="heading" aria-level={2}>
             شاگردان من
-            {list !== undefined && (
+            {active !== undefined && (
               <span className="font-normal text-muted-foreground">
                 {" "}
-                ({toPersianDigits(list.length)})
+                ({toPersianDigits(active.length)})
               </span>
             )}
           </CardTitle>

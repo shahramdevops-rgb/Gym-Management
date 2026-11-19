@@ -8,6 +8,7 @@ import { siteMeQueryKey } from "../auth/api";
 export type TrainerChoice = components["schemas"]["TrainerChoiceResponse"];
 export type MyTrainer = components["schemas"]["MyTrainerResponse"];
 export type Students = components["schemas"]["StudentsResponse"];
+export type RenewalRequestItem = components["schemas"]["RenewalRequestResponse"];
 export type CoachingNews = components["schemas"]["CoachingNewsResponse"];
 export type CoachingNewsItem = components["schemas"]["CoachingNewsItemResponse"];
 
@@ -104,6 +105,33 @@ export function useEndMyTrainer() {
   });
 }
 
+/**
+ * «درخواست تمدید» (roadmap 15.7o): from the period's last days or after it is over. Asks nothing
+ * first: it costs no SMS and can be taken back.
+ */
+export function useRequestRenewal() {
+  return useMyTrainerAction(async () => {
+    const { data, error } = await siteApi.POST("/api/site/coaching/my-trainer/renewal-request");
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
+}
+
+/** «لغو درخواست» on the renewal request waiting for the trainer. */
+export function useCancelRenewalRequest() {
+  return useMyTrainerAction(async () => {
+    const { data, error } = await siteApi.POST(
+      "/api/site/coaching/my-trainer/renewal-request/cancel",
+    );
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
+}
+
 // ---- The trainer ----
 
 /** The requests waiting for this trainer, and «شاگردان من». */
@@ -155,6 +183,36 @@ export function useAcceptTrainerRequest() {
 export function useDeclineTrainerRequest() {
   return useStudentsAction(async (requestId) => {
     const { data, error } = await siteApi.POST("/api/site/coaching/requests/{id}/decline", {
+      params: { path: { id: requestId } },
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
+}
+
+/**
+ * «تمدید» on a student's «درخواست تمدید» (roadmap 15.7o): the days typed after the last day, or from
+ * today once it is over, as «تمدید» on «برنامهٔ ثابت».
+ */
+export function useAcceptRenewalRequest() {
+  return useStudentsAction(async ({ requestId, days }: { requestId: string; days: number }) => {
+    const { data, error } = await siteApi.POST("/api/site/coaching/renewal-requests/{id}/accept", {
+      params: { path: { id: requestId } },
+      body: { days },
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
+}
+
+/** «رد کردن» a renewal request: the student may ask again. */
+export function useDeclineRenewalRequest() {
+  return useStudentsAction(async (requestId) => {
+    const { data, error } = await siteApi.POST("/api/site/coaching/renewal-requests/{id}/decline", {
       params: { path: { id: requestId } },
     });
     if (error !== undefined) {

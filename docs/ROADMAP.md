@@ -3956,16 +3956,6 @@ Closed 2026-10-25: 2728 backend tests (965 domain, 1763 integration; 5 new) and 
 migration; one new endpoint, read only, so a rollback to `20261025-0344-23fdcdd` is safe.
 `npm run e2e` and `npm run screenshots` are left for the release night.
 
-### 13.6 The server reminder (یادآور شارژ سرور)
-Asked by the developer on 1405/08/24 (2026-11-15): the server is paid at the start of every Jalali
-month, and the Owner should see it coming, like the SMS credit in the header. Rules:
-BUSINESS_RULES.md §10 *The server reminder*. Not started; a task of its own, in its own session.
-- [ ] Settle the open points in the rule (colours, words, phone, where the confirmation is kept)
-- [ ] The header box for the Owner, from five days before the 1st, until «شارژ کردم» is confirmed
-- [ ] On a phone only the small coloured icon, like the SMS credit; the header measured before and
-      after at ~390px so nothing else moves (asked by the developer)
-- [ ] Tests, and the box shown to the developer at a phone's width and on a computer
-
 ---
 
 ## Phase 14 — The public site (سایت اصلی)
@@ -5000,20 +4990,103 @@ on its own branch and session, in this order (proposed by Claude, accepted):
     «تمدید» as `CoachingPeriods.CutAfterAsync`
   - **Screens**: «ویرایش دوره» beside «تمدید» while the period runs (`PeriodDaysForm`, the days left
     to start with, the cut warned); `PeriodQuestion` before both (`bookings/StudentSchedulePage.tsx`)
-- [ ] **15.7l, «شاگردان من»: active and inactive** (screens; maybe the API's list): a closed part
-      «غیرفعال (n)» under the active students; search in both; the home's count and «رسیدگی
-      می‌خواهد» active only
-- [ ] **15.7m, the new on-time window** (domain, screens): 15 minutes before to 5 after is on time;
+- [x] **15.7l, «شاگردان من»: active and inactive** (built 1405/08/28 on
+      `task/15.7l-active-students`, from `main` after the showcase release; screens only, no API
+      change: the list already carries `periodEndsOn`): a closed part «غیرفعال (n)» under the
+      active students; search in both; the home's count and «رسیدگی می‌خواهد» active only
+  - **Screens**: `isActiveStudent` (`coaching/period.ts`: not over), `StudentsPage` in two lists
+    («شاگردان من», «شاگردان غیرفعال») under one search, the part a button with `aria-expanded`
+    that a search opens by itself; the title and `TrainerArea`'s card count the active ones
+  - **Tests**: three new Vitest cases (the closed part, a search finding an inactive student,
+    every period over) and the marks' case updated; walked at 390 px and 1440 px with a mocked API
+- [x] **15.7m, the new on-time window** (built 1405/08/28 on `task/15.7m-on-time-window`, from
+      15.7l's branch; domain, screens, no migration): 15 minutes before to 5 after is on time;
       earlier «زودتر از موعد» with minutes from the start; later «تأخیر» from the start; earlier
-      days by the same rule (`PresenceRules`)
-- [ ] **15.7n, the SMS of the period's last days (پیامک پایان دوره)** (backend, panel, migration):
-      a new member kind with its *N* (3 to 14, 7 to start, off at first), once per link and last
-      day, the text in `SmsText` and `docs/sms-texts.md`; the trainer's mark in «شاگردان من» from the
-      same *N* (in place of 3 days)
-- [ ] **15.7o, «درخواست تمدید»** (backend, screens, migration): the member asks in «مربی من» from
-      *N* days left and after the end; one waiting per link, «لغو درخواست»; the trainer answers in
-      «درخواست‌ها» with «تمدید» (days box, asked first) or «رد کردن»; a «تمدید» on «برنامهٔ ثابت»
-      answers it; ending the coaching closes it
+      days by the same rule (`PresenceRules`), since nothing is stored
+  - **Domain**: `PresenceRules.OnTimeBeforeMinutes` (15) and `OnTimeAfterMinutes` (5) in place of
+    `OnTimeMinutes`; a state of its own, `SessionPresence.Early` (8), with `MinutesEarly` only for
+    it; `IsPresent()` (early, on time, late) for every count and for «مرخصی داشت»
+  - **API**: the month's totals carry `early`; the day's «حاضر» counts it (types regenerated)
+  - **Screens** (the developer took both of Claude's proposals): a badge «زودتر از موعد ۱۲:۳۰»
+    with «۳۰ دقیقه زودتر از موعد» under it, as «با تأخیر» has its minutes, in a turquoise of its
+    own (`--early`, Badge `early`; the developer, after the first screenshots: not on time's green); the «حاضر» box
+    shows the early too; the month's totals four a row, the first row came (زودتر از موعد،
+    به‌موقع، با تأخیر، بعد از سانس), the second did not (غایب، مرخصی، لغو شد), for the trainer's
+    «حضور» and the member's «حضور من» alike
+  - **Tests**: the domain's edges (12:44 early, 12:45 and 13:05 on time, 13:05:40 still on time,
+    13:06 late, an early visit still open at the start, leave and early), the integration cases
+    moved to the new window, Vitest for the badge, the «حاضر» box and the seven boxes
+- [x] **15.7n, the SMS of the period's last days (پیامک پایان دوره)** (built 1405/08/28 on
+      `task/15.7n-period-end-sms`, from 15.7m's branch; backend, panel, site, migration): a new
+      member kind with its *N* (3 to 14, 7 to start, off at first), once per link and last day, the
+      text in `SmsText` and `docs/sms-texts.md`; the trainer's mark in «شاگردان من» from the same *N*
+      (in place of 3 days). The developer took Claude's three proposals: *N* never empty, the
+      trainer's name cut at 3 words, released with 15.7o (or left off until then). **At release**:
+      set `periodEndingNewUntil` (`SmsSettingsPage.tsx`) to a week after the release day
+  - **Domain**: `NotificationKind.CoachingPeriodEnding`; `Notification.ForCoachingPeriodEnding`
+    with `TrainerLinkId` and `PeriodEndsOn`; `SmsSettings.CoachingPeriodEnding{Enabled,Days,SendTime}`
+    (`DefaultCoachingPeriodEndingDays` 7, `CheckThreshold` refuses an empty number for this kind
+    only), error `Sms.CoachingPeriodEndingDaysOutOfRange`; `SmsAudience.CoachingDaysLeftToText`
+    (1 to *N* days left, the last period longer than *N*); `SmsText.ForCoachingPeriodEnding` with
+    `GymSignature` on its own line (three SMS parts, pointed out to the developer)
+  - **Database**: migration `AddCoachingPeriodSms` (adds only: three `sms_settings` columns, the
+    days `NOT NULL` from 7 with a 3–14 check and "on means a time"; `notifications.trainer_link_id`
+    with a foreign key and `period_ends_on`; the partial unique index
+    `ix_notifications_one_period_ending_per_link_and_last_day`; the kind in the two kind checks and
+    `ck_notifications_link_only_for_coaching_period_ending`)
+  - **Application/API**: `CoachingPeriodEndingCandidate` in the daily run (an open link of an
+    active member, its latest period ending within the window, no SMS yet for that last day); the
+    settings' response, command and validator carry `coachingPeriodEnding`; the samples too, with
+    «علی شریفی‌پور»; `StudentsResponse.PeriodSoonDays` (types regenerated)
+  - **Panel**: the card «پایان دورهٔ مربی‌گری» among the members' kinds, its days, time, the note
+    that the trainer's mark follows it, its sample, and «جدید» for a week (`KindCard`'s `badge`, only
+    on that card); the kind's label on «پیامک‌ها»; the audit labels
+  - **Site**: `periodMark(state, soonDays)` and `soonDaysOf` (`coaching/period.ts`) in place of
+    `periodSoonDays = 3`, in «شاگردان من» and the home's «رسیدگی می‌خواهد»
+  - **Tests**: domain (the window's edges, the short last period, a renewal starting tomorrow,
+    the text, the settings' 3–14 and empty), integration (`CoachingPeriodEndingTests`: once per last
+    day, a missed run's real days, the last day, the settings' number, a renewal's and an edit's
+    new last day, none for ended/deactivated/unset/over/short/renewed, the kind off, the unique
+    index and the checks; the settings endpoint; the samples; `periodSoonDays` on the list), Vitest
+    (the card, its save and refusals, the badge's week, the site's mark at 7 and 10)
+- [x] **15.7o, «درخواست تمدید»** (built 1405/08/28 on `task/15.7o-renewal-requests`, from 15.7n's
+      branch; backend, screens, migration): the member asks in «مربی من» from *N* days left and
+      after the end; one waiting per link, «لغو درخواست»; the trainer answers in «درخواست‌ها» with
+      «تمدید» (days box, asked first) or «رد کردن»; a «تمدید» on «برنامهٔ ثابت» answers it; ending
+      the coaching closes it. The developer took Claude's five proposals with the plan (§15 *The
+      coaching period*, *Decided with 15.7o's plan*): the decline shows only while the last day is
+      the one asked about; a later «ویرایش» answers it, an earlier one does not; a deactivated
+      member's request is left out of «درخواست‌ها»; no confirmation and no daily limit for asking;
+      no card for the member when renewed. Released with 15.7n (its SMS points here)
+  - **Domain**: `RenewalRequest` (`Create(link, today, soonDays)`, `CanAsk`, `Renew`, `Decline`,
+    `Cancel`, `CloseForEndedLink`, `ShowsDecline`; the last day asked about kept as
+    `PeriodEndsOn`), `RenewalRequestStatus`; errors `Coaching.RenewalNotYet`, `NoRenewalRequest`,
+    `RenewalRequestNotFound`, `RenewalNoLongerPending`
+  - **Database**: migration `AddRenewalRequests` (adds only: `renewal_requests` with the partial
+    unique index `ux_renewal_requests_one_pending_per_link`, an index on link and creation, checks
+    on the status, «the answer has a day» and «not answered before asked»)
+  - **Application/API**: `POST /my-trainer/renewal-request` and `.../cancel` (member);
+    `POST /coaching/renewal-requests/{id}/accept { days }` and `.../decline` (trainer, the accept
+    renews as «تمدید» does, under the coaching lock then the trainer's); «مربی من» carries `renewal`
+    and `canAskRenewal`, the trainer's list `renewalRequests`; `RenewalRequests` (Application/Coaching)
+    answers a waiting one from «تمدید» and a later «ویرایش», and closes it at each of the four ends
+    of a link (the member, the trainer, a new trainer, the Owner stopping the trainer);
+    `CoachingPeriods.SoonDaysAsync` shared with the trainer's mark; audit labels; types regenerated
+  - **Screens**: «درخواست تمدید», «درخواست تمدید در انتظار پاسخ مربی» with «لغو درخواست» and
+    «درخواست تمدید رد شد» in «مربی من» (`RenewalPart`); the renewals under the requests in
+    `TrainerRequestsCard`, counted in its title, «درخواست تمدید، دوره تا …» or «… تمام شد», «تمدید»
+    with the days box from the day after the last day and the question, «رد کردن» at once;
+    `PeriodQuestion` and `renewQuestion` moved out of «برنامهٔ ثابت» to share them
+  - **Tests**: domain (the window's edges, the settings' number, no period, an ended link, after a
+    renewal, the answers and the decline's showing), integration (`RenewalRequestTests`, 35: asking,
+    twice, too early, after the end, no period, no trainer, the trainer's token, the audit log;
+    cancelling; «تمدید» before and after the end, the days out of range, taken back meanwhile,
+    another trainer's; declining, asking again, the decline hidden by a moved last day; «تمدید» on
+    the page and «ویرایش» later, earlier and the same; the four ends; a deactivated member; the
+    index and the checks), Vitest (12: the member's three states and the refusal, the trainer's
+    count, details, «تمدید» asked first, cancelling the question, a period over, declining, a
+    refusal), e2e (the coaching spec accepts with 7 days, asks and renews); walked at 390 px and
+    1440 px with a mocked API
 
 ### Release 3 — The monthly assessment (priority 2)
 

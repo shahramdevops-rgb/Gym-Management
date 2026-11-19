@@ -10,8 +10,8 @@ public static class TrainerStudents
 {
     /// <summary>
     /// The trainer's links end today, so their students go back to having no trainer and keep
-    /// everything recorded about them; the requests waiting for the trainer end too. The caller
-    /// holds the coaching lock and saves.
+    /// everything recorded about them; the requests waiting for the trainer end too, and the
+    /// students' renewal requests (15.7o). The caller holds the coaching lock and saves.
     /// </summary>
     public static async Task ReleaseAsync(IAppDbContext db, Guid trainerId, DateOnly today, CancellationToken cancellationToken)
     {
@@ -24,6 +24,8 @@ public static class TrainerStudents
         {
             link.End(today, TrainerLinkEndReason.TrainerStopped);
         }
+
+        await RenewalRequests.CloseForEndedLinksAsync(db, links.Select(link => link.Id).ToList(), cancellationToken);
 
         var waiting = await db.TrainerRequests
             .Where(request => request.TrainerId == trainerId && request.Status == TrainerRequestStatus.Pending)

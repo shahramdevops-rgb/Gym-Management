@@ -1,6 +1,6 @@
 namespace Gym.Domain.Notifications;
 
-/// <summary>The SMS the gym sends (BUSINESS_RULES.md §10 <i>The four kinds</i>, <i>The daily report</i>, <i>The subscription receipt</i>, <i>The welcome</i>, <i>The debt reminder</i>, <i>The absence SMS</i>, <i>The welcome back</i>, <i>The broadcast</i>; §15 <i>A member and their trainer</i>, <i>Timetable and attendance</i>).</summary>
+/// <summary>The SMS the gym sends (BUSINESS_RULES.md §10 <i>The four kinds</i>, <i>The daily report</i>, <i>The subscription receipt</i>, <i>The welcome</i>, <i>The debt reminder</i>, <i>The absence SMS</i>, <i>The welcome back</i>, <i>The broadcast</i>; §15 <i>A member and their trainer</i>, <i>Timetable and attendance</i>, <i>The coaching period</i>).</summary>
 public enum NotificationKind
 {
     /// <summary>To the member: an active subscription's end date is near.</summary>
@@ -44,4 +44,10 @@ public enum NotificationKind
     /// save, one per member and save, only for a date within the next few days.
     /// </summary>
     SessionCancelled,
+
+    /// <summary>
+    /// To the member: their coaching period has a few days left (task 15.7n, §15 <i>The coaching
+    /// period</i>), by a daily run, once per trainer link and last day.
+    /// </summary>
+    CoachingPeriodEnding,
 }

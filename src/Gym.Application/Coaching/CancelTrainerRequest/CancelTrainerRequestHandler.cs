@@ -11,7 +11,7 @@ namespace Gym.Application.Coaching.CancelTrainerRequest;
 /// the coaching lock: a trainer accepting at the same moment either comes first, and there is then
 /// nothing to take back, or after, and finds it taken back.
 /// </summary>
-public sealed class CancelTrainerRequestHandler(IAppDbContext db)
+public sealed class CancelTrainerRequestHandler(IAppDbContext db, IGymCalendar calendar)
 {
     public async Task<Result<MyTrainerResponse>> Handle(Guid siteAccountId, CancellationToken cancellationToken)
     {
@@ -36,6 +36,6 @@ public sealed class CancelTrainerRequestHandler(IAppDbContext db)
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return await MyTrainerResponse.ForAsync(db, member.Value.Id, cancellationToken);
+        return await MyTrainerResponse.ForAsync(db, member.Value.Id, calendar.Today(), cancellationToken);
     }
 }

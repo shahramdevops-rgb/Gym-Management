@@ -9,12 +9,14 @@ namespace Gym.Application.Coaching.EndMyTrainer;
 /// <summary>
 /// The member ends their link to their trainer, with no new one (BUSINESS_RULES.md §15, decided by
 /// the developer 1405/08/07): it ends today, and the trainer stops seeing them today. A request
-/// waiting for another trainer is left as it is.
+/// waiting for another trainer is left as it is; a renewal request waiting closes (15.7o).
 /// </summary>
 public sealed class EndMyTrainerHandler(IAppDbContext db, IGymCalendar calendar)
 {
     public async Task<Result<MyTrainerResponse>> Handle(Guid siteAccountId, CancellationToken cancellationToken)
     {
+        var today = calendar.Today();
+
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         await db.LockCoachingAsync(cancellationToken);
 
@@ -32,10 +34,11 @@ public sealed class EndMyTrainerHandler(IAppDbContext db, IGymCalendar calendar)
             return Result.Failure<MyTrainerResponse>(CoachingErrors.NoTrainer);
         }
 
-        link.End(calendar.Today(), TrainerLinkEndReason.ByMember);
+        link.End(today, TrainerLinkEndReason.ByMember);
+        await RenewalRequests.CloseForEndedLinksAsync(db, [link.Id], cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return await MyTrainerResponse.ForAsync(db, member.Value.Id, cancellationToken);
+        return await MyTrainerResponse.ForAsync(db, member.Value.Id, today, cancellationToken);
     }
 }

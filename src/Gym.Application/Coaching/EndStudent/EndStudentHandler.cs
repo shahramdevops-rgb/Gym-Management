@@ -9,6 +9,7 @@ namespace Gym.Application.Coaching.EndStudent;
 /// <summary>
 /// The trainer ends a student's link (BUSINESS_RULES.md §15, decided by the developer 1405/08/07):
 /// it ends today, the trainer stops seeing the member today, and the member is left with no trainer.
+/// A renewal request waiting closes (15.7o).
 /// </summary>
 public sealed class EndStudentHandler(IAppDbContext db, IGymCalendar calendar)
 {
@@ -32,6 +33,7 @@ public sealed class EndStudentHandler(IAppDbContext db, IGymCalendar calendar)
         }
 
         link.End(calendar.Today(), TrainerLinkEndReason.ByTrainer);
+        await RenewalRequests.CloseForEndedLinksAsync(db, [link.Id], cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

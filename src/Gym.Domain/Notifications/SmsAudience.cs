@@ -1,4 +1,5 @@
 using Gym.Domain.Attendances;
+using Gym.Domain.Coaching;
 using Gym.Domain.Common;
 using Gym.Domain.Payables;
 using Gym.Domain.Subscriptions;
@@ -281,6 +282,28 @@ public static class SmsAudience
         && !visitCancelled
         && visitAt > sentAt
         && firstVisitSinceAt == visitAt;
+
+    /// <summary>
+    /// The coaching's days left today, or <c>null</c> when it earns no SMS of its last days (§15
+    /// <i>The coaching period</i>, task 15.7n): from 1 to <paramref name="daysBefore"/> days left, its
+    /// last day counting as one, as in the app. A missed run catches up the next day with the real
+    /// days left. Whether the link is open, the member active, and this last day already texted are
+    /// the run's questions.
+    /// </summary>
+    /// <remarks>
+    /// <b>None for a last period of <paramref name="daysBefore"/> days or fewer</b>: it would come in
+    /// its first days, as if the trainer had not just given them. The same rule leaves out a coaching
+    /// already renewed past the window (its last day is further on) and a period that is over.
+    /// </remarks>
+    /// <param name="lastPeriod">The link's period that holds its last day: the one that ends latest.</param>
+    public static int? CoachingDaysLeftToText(CoachingPeriod lastPeriod, DateOnly today, int daysBefore)
+    {
+        ArgumentNullException.ThrowIfNull(lastPeriod);
+
+        var daysLeft = lastPeriod.EndsOn.DayNumber - today.DayNumber + 1;
+
+        return daysLeft >= 1 && daysLeft <= daysBefore && lastPeriod.Days > daysBefore ? daysLeft : null;
+    }
 
     private static bool SoldBefore(Subscription one, Subscription other) =>
         one.CreatedAt < other.CreatedAt

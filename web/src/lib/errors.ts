@@ -177,6 +177,12 @@ export const errorMessages: Record<string, string> = {
     "دورهٔ مربی‌گری باید بین ۷ تا ۸۴ روز باشد (روزهای باقی‌ماندهٔ شاگردان قبلی از ۱ روز).",
   "Coaching.PeriodNotRunning":
     "این دوره در جریان نیست و ویرایش نمی‌شود؛ اگر تمام شده، آن را تمدید کنید.",
+  // «درخواست تمدید» (15.7o)
+  "Coaching.RenewalNotYet":
+    "درخواست تمدید فقط در روزهای آخر دورهٔ مربی‌گری یا بعد از پایان آن ممکن است.",
+  "Coaching.NoRenewalRequest": "درخواست تمدیدی در انتظار پاسخ ندارید.",
+  "Coaching.RenewalRequestNotFound": "این درخواست تمدید پیدا نشد.",
+  "Coaching.RenewalNoLongerPending": "این درخواست تمدید دیگر در انتظار پاسخ نیست. صفحه تازه شد.",
 
   // The trainer's timetable (site)
   "Timetable.CapacityOutOfRange": "ظرفیت هر سانس باید بین ۱ تا ۵۰ نفر باشد.",
@@ -265,6 +271,7 @@ export const errorMessages: Record<string, string> = {
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
   "Sms.DebtReminderDaysOutOfRange": "تعداد روز باید از ۱ تا ۹۰ باشد.",
   "Sms.AbsenceDaysOutOfRange": "تعداد روز باید از ۷ تا ۶۰ باشد.",
+  "Sms.CoachingPeriodEndingDaysOutOfRange": "تعداد روز باید از ۳ تا ۱۴ باشد.",
   "Sms.DebtReminderMinAmountOutOfRange":
     "حداقل مبلغ باید ۱٬۰۰۰ تومان یا بیشتر باشد، با حداکثر دو رقم اعشار.",
   "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",

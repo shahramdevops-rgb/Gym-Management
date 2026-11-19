@@ -228,6 +228,31 @@ public sealed class NotificationTests
         Should.Throw<ArgumentException>(() => Notification.ForSessionCancelled(Guid.NewGuid(), Guid.Empty, Phone, Text));
 
     [Fact]
+    public void ForCoachingPeriodEnding_GoesToTheMemberAboutTheLinkAndItsLastDay()
+    {
+        var memberId = Guid.NewGuid();
+        var linkId = Guid.NewGuid();
+        var lastDay = new DateOnly(2026, 11, 26);
+
+        var notification = Notification.ForCoachingPeriodEnding(memberId, linkId, lastDay, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.CoachingPeriodEnding);
+        notification.MemberId.ShouldBe(memberId);
+        notification.TrainerLinkId.ShouldBe(linkId);
+        notification.PeriodEndsOn.ShouldBe(lastDay);
+        notification.TrainerId.ShouldBeNull();
+        notification.SubscriptionId.ShouldBeNull();
+        notification.Recipient.ShouldBe(Phone);
+        notification.Text.ShouldBe(Text);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+    }
+
+    [Fact]
+    public void ForCoachingPeriodEnding_EmptyLinkId_Throws() =>
+        Should.Throw<ArgumentException>(() =>
+            Notification.ForCoachingPeriodEnding(Guid.NewGuid(), Guid.Empty, new DateOnly(2026, 11, 26), Phone, Text));
+
+    [Fact]
     public void ForAbsence_EmptyMemberId_Throws() =>
         Should.Throw<ArgumentException>(() => Notification.ForAbsence(Guid.Empty, new DateOnly(2026, 10, 1), Phone, Text));
 

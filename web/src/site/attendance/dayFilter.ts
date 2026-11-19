@@ -5,8 +5,9 @@ export type DayFilter = "students" | "present" | "late" | "cameAfter" | "absent"
 
 const filterStates: Record<DayFilter, readonly SessionPresence[]> = {
   // The students the counts count: everyone in a session except «مرخصی» and «لغو شد».
-  students: ["NotYet", "OnTime", "Late", "CameAfter", "Absent"],
-  present: ["OnTime", "Late"],
+  students: ["NotYet", "Early", "OnTime", "Late", "CameAfter", "Absent"],
+  // Early, on time and late all came to the session (15.7m).
+  present: ["Early", "OnTime", "Late"],
   late: ["Late"],
   cameAfter: ["CameAfter"],
   absent: ["Absent"],

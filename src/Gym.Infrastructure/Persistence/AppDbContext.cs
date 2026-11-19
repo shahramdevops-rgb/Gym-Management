@@ -109,6 +109,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<CoachingPeriod> CoachingPeriods => Set<CoachingPeriod>();
 
+    public DbSet<RenewalRequest> RenewalRequests => Set<RenewalRequest>();
+
     public DbSet<WeekPattern> WeekPatterns => Set<WeekPattern>();
 
     public DbSet<TimetableDay> TimetableDays => Set<TimetableDay>();

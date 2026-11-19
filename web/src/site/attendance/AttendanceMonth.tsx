@@ -70,7 +70,9 @@ export function AttendanceMonth({
   /** What an empty month says. */
   empty: string;
 }) {
+  // Four a row (15.7m): the first row came, the second did not.
   const boxes = [
+    { label: presenceLabels.Early, count: totals.early },
     { label: presenceLabels.OnTime, count: totals.onTime },
     { label: presenceLabels.Late, count: totals.late },
     { label: "بعد از سانس", count: totals.cameAfter },
@@ -81,7 +83,7 @@ export function AttendanceMonth({
 
   return (
     <>
-      <ul aria-label="جمع ماه" className="grid grid-cols-3 gap-1.5">
+      <ul aria-label="جمع ماه" className="grid grid-cols-4 gap-1.5">
         {boxes.map((box) => (
           <li key={box.label} className="rounded-lg bg-muted px-1 py-2 text-center">
             <p className="text-lg font-bold">{toPersianDigits(box.count)}</p>

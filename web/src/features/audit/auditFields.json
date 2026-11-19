@@ -35,6 +35,7 @@
     "TrainerRequest": "درخواست مربی",
     "TrainerLink": "مربی عضو",
     "CoachingPeriod": "دورهٔ مربی‌گری شاگرد",
+    "RenewalRequest": "درخواست تمدید شاگرد",
     "WeekPattern": "الگوی هفتگی مربی",
     "WeekPatternSession": "سانس الگوی هفتگی",
     "TimetableDay": "روز جداگانهٔ برنامهٔ مربی",
@@ -160,6 +161,8 @@
     "AbsentSince": { "label": "غیبت از روز" },
     "BroadcastId": { "label": "پیامک گروهی", "format": "reference" },
     "TimetableChangeId": { "label": "ذخیرهٔ برنامهٔ مربی", "format": "reference" },
+    "TrainerLinkId": { "label": "مربی عضو", "format": "reference" },
+    "PeriodEndsOn": { "label": "روز آخر دورهٔ مربی‌گری" },
     "Text": { "label": "متن" },
     "Status": { "label": "وضعیت", "format": "notificationStatus" },
     "Attempts": { "label": "دفعات تلاش" },
@@ -221,6 +224,9 @@
     "BroadcastEnabled": { "label": "پیامک گروهی: روشن" },
     "TrainerRequestEnabled": { "label": "انتخاب مربی: روشن" },
     "SessionCancelledEnabled": { "label": "لغو سانس: روشن" },
+    "CoachingPeriodEndingEnabled": { "label": "پایان دورهٔ مربی‌گری: روشن" },
+    "CoachingPeriodEndingDays": { "label": "پایان دورهٔ مربی‌گری: چند روز مانده" },
+    "CoachingPeriodEndingSendTime": { "label": "پایان دورهٔ مربی‌گری: ساعت ارسال" },
 
     "Audience": { "label": "گیرندگان", "format": "broadcastAudience" },
     "StopReason": { "label": "دلیل توقف", "format": "broadcastStopReason" },
@@ -277,6 +283,12 @@
       "LinkId": { "label": "مربی عضو", "format": "reference" },
       "StartsOn": { "label": "از تاریخ" },
       "EndsOn": { "label": "تا تاریخ" }
+    },
+    "RenewalRequest": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "PeriodEndsOn": { "label": "روز آخر دوره هنگام درخواست" },
+      "Status": { "label": "وضعیت", "format": "renewalRequestStatus" },
+      "AnsweredOn": { "label": "روز پاسخ مربی" }
     },
     "WeekPattern": { "StartsOn": { "label": "از تاریخ" } },
     "WeekPatternSession": {

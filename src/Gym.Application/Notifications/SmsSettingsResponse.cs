@@ -21,6 +21,7 @@ public sealed record SmsSettingsResponse(
     BroadcastSettings Broadcast,
     TrainerRequestSettingsResponse TrainerRequest,
     SessionCancelledSettingsResponse SessionCancelled,
+    SmsKindSettings CoachingPeriodEnding,
     uint Version)
 {
     public static SmsSettingsResponse From(SmsSettings settings)
@@ -47,6 +48,7 @@ public sealed record SmsSettingsResponse(
             new BroadcastSettings(settings.BroadcastEnabled),
             new TrainerRequestSettingsResponse(settings.TrainerRequestEnabled, SmsSettings.MorningSendTime),
             new SessionCancelledSettingsResponse(settings.SessionCancelledEnabled, SmsSettings.EarliestSendTime, SmsSettings.SessionCancelledDaysAhead),
+            settings.For(NotificationKind.CoachingPeriodEnding),
             settings.Version);
     }
 }

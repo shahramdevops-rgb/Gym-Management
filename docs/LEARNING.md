@@ -2568,3 +2568,41 @@ The question that started this was whether a gym that is entirely internal — I
 - **A confirmation that follows a form is a controlled dialog.** The site's `ConfirmDialog` opens from its own button and says yes in red, for things that cannot be undone. Here the question opens after the days are typed (`asking` state), so a small `PeriodQuestion` takes `open` from the page and says yes in the plain colour.
 - **Playwright route patterns can catch your own source files.** In the Vite dev server the sources are served from `/@fs/.../src/site/api/...`, so a `**/api/**` mock answered the app's own modules. Matching `url.pathname.startsWith("/api/")` mocks only the API.
 - **My notes:**
+
+## 15.7l — «شاگردان من»: active and inactive
+
+- **Derive a state, do not store it.** "Inactive" is only "the period's last day is before today", which the list already carries (`periodEndsOn`). Working it out on the screen (`isActiveStudent`) means no new column, no nightly job to flip a flag, and a «تمدید» brings the student back the moment the list is read again.
+- **One predicate, every place that counts.** The page's title, its two lists and the home's card all call the same `isActiveStudent`, so the numbers cannot disagree; a second copy of "over means inactive" in the card would drift the first time the rule changes.
+- **A disclosure is a button with `aria-expanded`.** The closed part is a plain `<button aria-expanded aria-controls>` over a list that renders only when open; a screen reader hears "collapsed/expanded", and the tests find it by role and name («غیرفعال (۲)») instead of by class.
+- **Search must not hide what it found.** A match inside a closed part would look like "nothing found", so while a search is typed the part opens by itself (`inactiveOpen || searching`) without changing what the trainer chose to keep open.
+- **My notes:**
+
+## 15.7m — The new on-time window
+
+- **A rule worked out, never stored, changes the past for free.** Attendance is read from the desk's check-ins each time (`PresenceRules.Mark`), so moving the window from "up to 15 after" to "15 before to 5 after" needed no migration and no back-fill: last month reads by the new rule the moment the code is out. The trade-off is that nobody can see what the old rule said about a day.
+- **A state of its own beats a flag on another state.** "Early" could have stayed `OnTime` with minutes beside it, but then the badge would read «به‌موقع» next to «زودتر از موعد». `SessionPresence.Early` makes the compiler list every place that must decide what early means: TypeScript's `Record<SessionPresence, …>` refused to build until the labels and colours had it.
+- **Name the question, not the list.** "Present" was written as `OnTime or Late` in two places; adding Early would have meant finding both. `IsPresent()` is one extension method that the day's counts and «مرخصی داشت» both call.
+- **Two constants for two edges.** `OnTimeBeforeMinutes` and `OnTimeAfterMinutes` say which side of the start each number is on, where one `OnTimeMinutes` could only ever describe one side.
+- **Test the edges, including seconds.** 12:44 vs 12:45 and 13:05 vs 13:06 pin the window; 13:05:40 proves whole minutes are compared, as the desk shows them.
+- **My notes:**
+
+## 15.7n — The SMS of the period's last days (پیامک پایان دوره)
+
+- **Name the event, and let a unique index keep it once.** "Once per last day" is the pair (trainer link, last day) in two new columns of `notifications`, with a partial unique index on it for this kind only. A «تمدید» or «ویرایش» makes a new pair, so the new last day earns its own SMS with no flag to reset; a second run, or two at once, cannot pay twice because the database refuses the row.
+- **Postgres cuts identifiers at 63 characters.** The first index name was 65, so Postgres stored a shortened one and the test that checked the constraint's name failed. Keep constraint names short, and test them by name: that is how the cut was caught.
+- **A column added to a table that already has rows needs a value for them.** `coaching_period_ending_days` is `NOT NULL`, so the migration's `AddColumn` gives it a default. EF scaffolded `0`, which breaks the 3–14 check; it was hand-edited to `7`, the number the developer chose, so the server's one row is valid at every step.
+- **One exception, written where the rule is.** Every SMS number starts empty, except this one, which the trainer's mark reads even when the SMS is off. `CheckThreshold` refuses an empty number for this kind only, so the entity, the validator and the page all say the same thing from one line.
+- **The query narrows, the domain decides.** The run asks Postgres for open links whose latest period ends in the window (a `let` with `FirstOrDefault` becomes a lateral join); `SmsAudience.CoachingDaysLeftToText` then applies the rule (the last period longer than *N*) and gives the real days left, unit tested without a database.
+- **Count what the message costs.** The accepted text is 137 characters, three SMS parts; a test pins the parts so a wording change that adds a fourth cannot pass unnoticed.
+- **Forwarded flags.** With Microsoft.Testing.Platform, `dotnet test -nologo` passes `-nologo` to the test app, which refuses it and reports "Zero tests ran": not a code problem, a flag in the wrong place.
+- **My notes:**
+
+## 15.7o — «درخواست تمدید»
+
+- **Keep the context a later rule needs.** A decline is shown "while the last day is the one asked about", so the request stores `PeriodEndsOn` when it is made. Without it, the screen could not tell a decline about this period from one about a period the trainer has since renewed or edited.
+- **One request per link, held by the database.** `ux_renewal_requests_one_pending_per_link` is a partial unique index (`WHERE status = 'Pending'`): many old requests per link, never two waiting. The handler also checks under the coaching lock, so a double press returns the one already there instead of an error.
+- **Find every door before you lock it.** "Ending the coaching closes the request" meant listing every place a link ends (`TrainerLink.End` is called in four handlers) and closing it in each, through one helper (`RenewalRequests.CloseForEndedLinksAsync`), with one integration test per door.
+- **The server decides what the screen offers.** «مربی من» sends `canAskRenewal` and `renewal` worked out by the domain's `RenewalRequest.CanAsk` and `ShowsDecline`, the same code that refuses a request asked too early. The screen only draws them, so the button and the rule cannot disagree.
+- **Enums are numbers in JSON unless you say otherwise.** The first test read `"renewal": 1`. This project turns an enum into its name per property (`[property: JsonConverter(typeof(JsonStringEnumConverter<T>))]`), so the generated TypeScript type is `"Pending" | "Declined" | …` and not a bare number.
+- **A file of components exports only components.** ESLint's `react-refresh/only-export-components` refused `renewQuestion` beside `PeriodQuestion`, since Vite's fast refresh reloads such a file as a whole. The text helper went to `period.ts` with the other period functions.
+- **My notes:**

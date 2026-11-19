@@ -18,10 +18,17 @@ function message(code: string): string {
 
 /**
  * The kinds with one number and a send time (BUSINESS_RULES.md §10 *The four kinds*, and *The
- * absence SMS*, task 10.12). The page shows the absence SMS last, after the debt reminder. «جلسات رو
- * به اتمام» has three rows by the plan's size instead (task 10.17), so it has its own schema.
+ * absence SMS*, task 10.12, and the coaching period's last days, §15, task 15.7n). The page shows
+ * the absence SMS after the debt reminder, and the coaching period's after it. «جلسات رو به اتمام»
+ * has three rows by the plan's size instead (task 10.17), so it has its own schema.
  */
-export const smsKinds = ["subscriptionExpiring", "birthday", "payableDue", "absence"] as const;
+export const smsKinds = [
+  "subscriptionExpiring",
+  "birthday",
+  "payableDue",
+  "absence",
+  "coachingPeriodEnding",
+] as const;
 
 export type SmsKind = (typeof smsKinds)[number];
 
@@ -31,7 +38,14 @@ export const thresholdRanges: Record<SmsKind, { min: number; max: number; code: 
   birthday: { min: 1, max: 7, code: "Sms.BirthdayDaysOutOfRange" },
   payableDue: { min: 0, max: 30, code: "Sms.PayableDueDaysOutOfRange" },
   absence: { min: 7, max: 60, code: "Sms.AbsenceDaysOutOfRange" },
+  coachingPeriodEnding: { min: 3, max: 14, code: "Sms.CoachingPeriodEndingDaysOutOfRange" },
 };
+
+/**
+ * The one kind whose number is never empty (task 15.7n): the trainer's mark in «شاگردان من» reads
+ * it whether the SMS is on or off, so the API refuses an empty box under the range's message.
+ */
+export const alwaysFilledKinds: readonly SmsKind[] = ["coachingPeriodEnding"];
 
 /** The debt reminder's days since the oldest unpaid sale, the same as the API's `SmsSettings.ThresholdRange` (task 10.11). */
 export const debtReminderDaysRange = { min: 1, max: 90 } as const;
@@ -212,13 +226,15 @@ export const smsSettingsSchema = z
     sessionCancelled: z.object({
       enabled: z.boolean(),
     }),
+    /** The student's SMS when their coaching period has a few days left (task 15.7n): days and a time. */
+    coachingPeriodEnding: kindSchema,
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
       const settings = values[kind];
+      const range = thresholdRanges[kind];
 
       if (settings.threshold.trim() !== "") {
-        const range = thresholdRanges[kind];
         const threshold = wholeNumber(settings.threshold);
         if (threshold === null || threshold < range.min || threshold > range.max) {
           context.addIssue({
@@ -227,6 +243,12 @@ export const smsSettingsSchema = z
             message: message(range.code),
           });
         }
+      } else if (alwaysFilledKinds.includes(kind)) {
+        context.addIssue({
+          code: "custom",
+          path: [kind, "threshold"],
+          message: message(range.code),
+        });
       }
 
       if (settings.enabled && !isKindFilled(kind, settings, values.ownerPhone)) {
@@ -381,6 +403,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
     broadcast: { enabled: settings.broadcast.enabled },
     trainerRequest: { enabled: settings.trainerRequest.enabled },
     sessionCancelled: { enabled: settings.sessionCancelled.enabled },
+    coachingPeriodEnding: kindValues(settings.coachingPeriodEnding),
   };
 }
 
@@ -443,6 +466,7 @@ export function toInput(
     broadcast: { enabled: values.broadcast.enabled },
     trainerRequest: { enabled: values.trainerRequest.enabled },
     sessionCancelled: { enabled: values.sessionCancelled.enabled },
+    coachingPeriodEnding: kindInput(values.coachingPeriodEnding),
     version,
   };
 }

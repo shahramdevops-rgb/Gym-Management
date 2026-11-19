@@ -220,6 +220,7 @@ public sealed class DailyReportTests(DatabaseFixture fixture) : DatabaseTestBase
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
             scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
             scope.ServiceProvider.GetRequiredService<AbsenceCandidate>(),
+            new CoachingPeriodEndingCandidate(db),
             NullLogger<SendDailySmsHandler>.Instance);
 
         return await handler.Handle(NotificationKind.DailyReport, TestContext.Current.CancellationToken);
@@ -247,7 +248,7 @@ public sealed class DailyReportTests(DatabaseFixture fixture) : DatabaseTestBase
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
-            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false).IsSuccess.ShouldBeTrue();
+            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false, coachingPeriodEnding: SmsSettings.CoachingPeriodEndingAtStart).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

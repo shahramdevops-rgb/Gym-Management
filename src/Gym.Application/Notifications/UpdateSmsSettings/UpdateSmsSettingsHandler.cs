@@ -73,7 +73,8 @@ public sealed class UpdateSmsSettingsHandler(IAppDbContext db, IPhoneNormalizer 
             command.Absence,
             command.Broadcast.Enabled,
             command.TrainerRequest.Enabled,
-            command.SessionCancelled.Enabled);
+            command.SessionCancelled.Enabled,
+            command.CoachingPeriodEnding);
         if (updated.IsFailure)
         {
             return Result.Failure<SmsSettingsResponse>(updated.Error);

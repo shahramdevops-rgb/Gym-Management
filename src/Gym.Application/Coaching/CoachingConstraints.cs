@@ -11,4 +11,7 @@ public static class CoachingConstraints
 
     /// <summary>A member has one trainer at a time: one open link at most.</summary>
     public const string OneOpenLink = "ix_trainer_links_member_id_open";
+
+    /// <summary>A link has one renewal request waiting at most (15.7o).</summary>
+    public const string OnePendingRenewal = "ux_renewal_requests_one_pending_per_link";
 }
