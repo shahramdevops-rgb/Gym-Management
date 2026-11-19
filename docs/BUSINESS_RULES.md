@@ -2748,6 +2748,13 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     active ones.
   - **On the home**, the card «شاگردان من (n)» counts the active ones only, and «رسیدگی می‌خواهد»
     names only active students (ending within *N* days, or no period given). *Proposed by Claude.*
+  - **Built with 15.7l** (1405/08/28; *proposed by Claude*, for the developer to confirm): the
+    page's title «شاگردان من (n)» counts the active ones too, as the home's card does; while the
+    search finds someone among the inactive ones, the closed part opens by itself, so a match is
+    never hidden; with no active student the page says «شاگرد فعالی ندارید.» above the closed part.
+    A deactivated member (§2) stays in the part their period puts them in, with the «غیرفعال» of
+    their membership beside the name as before. Until 15.7n, «ending within *N* days» is the 3 days
+    of 15.7h.
 
 ### The member's own records (15.5)
 - **The member sees in the app everything the panel's profile holds about them, except the SMS

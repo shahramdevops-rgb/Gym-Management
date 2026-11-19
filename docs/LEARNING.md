@@ -2568,3 +2568,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **A confirmation that follows a form is a controlled dialog.** The site's `ConfirmDialog` opens from its own button and says yes in red, for things that cannot be undone. Here the question opens after the days are typed (`asking` state), so a small `PeriodQuestion` takes `open` from the page and says yes in the plain colour.
 - **Playwright route patterns can catch your own source files.** In the Vite dev server the sources are served from `/@fs/.../src/site/api/...`, so a `**/api/**` mock answered the app's own modules. Matching `url.pathname.startsWith("/api/")` mocks only the API.
 - **My notes:**
+
+## 15.7l — «شاگردان من»: active and inactive
+
+- **Derive a state, do not store it.** "Inactive" is only "the period's last day is before today", which the list already carries (`periodEndsOn`). Working it out on the screen (`isActiveStudent`) means no new column, no nightly job to flip a flag, and a «تمدید» brings the student back the moment the list is read again.
+- **One predicate, every place that counts.** The page's title, its two lists and the home's card all call the same `isActiveStudent`, so the numbers cannot disagree; a second copy of "over means inactive" in the card would drift the first time the rule changes.
+- **A disclosure is a button with `aria-expanded`.** The closed part is a plain `<button aria-expanded aria-controls>` over a list that renders only when open; a screen reader hears "collapsed/expanded", and the tests find it by role and name («غیرفعال (۲)») instead of by class.
+- **Search must not hide what it found.** A match inside a closed part would look like "nothing found", so while a search is typed the part opens by itself (`inactiveOpen || searching`) without changing what the trainer chose to keep open.
+- **My notes:**

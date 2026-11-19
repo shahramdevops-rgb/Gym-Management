@@ -5000,9 +5000,15 @@ on its own branch and session, in this order (proposed by Claude, accepted):
     «تمدید» as `CoachingPeriods.CutAfterAsync`
   - **Screens**: «ویرایش دوره» beside «تمدید» while the period runs (`PeriodDaysForm`, the days left
     to start with, the cut warned); `PeriodQuestion` before both (`bookings/StudentSchedulePage.tsx`)
-- [ ] **15.7l, «شاگردان من»: active and inactive** (screens; maybe the API's list): a closed part
-      «غیرفعال (n)» under the active students; search in both; the home's count and «رسیدگی
-      می‌خواهد» active only
+- [x] **15.7l, «شاگردان من»: active and inactive** (built 1405/08/28 on
+      `task/15.7l-active-students`, from `main` after the showcase release; screens only, no API
+      change: the list already carries `periodEndsOn`): a closed part «غیرفعال (n)» under the
+      active students; search in both; the home's count and «رسیدگی می‌خواهد» active only
+  - **Screens**: `isActiveStudent` (`coaching/period.ts`: not over), `StudentsPage` in two lists
+    («شاگردان من», «شاگردان غیرفعال») under one search, the part a button with `aria-expanded`
+    that a search opens by itself; the title and `TrainerArea`'s card count the active ones
+  - **Tests**: three new Vitest cases (the closed part, a search finding an inactive student,
+    every period over) and the marks' case updated; walked at 390 px and 1440 px with a mocked API
 - [ ] **15.7m, the new on-time window** (domain, screens): 15 minutes before to 5 after is on time;
       earlier «زودتر از موعد» with minutes from the start; later «تأخیر» from the start; earlier
       days by the same rule (`PresenceRules`)

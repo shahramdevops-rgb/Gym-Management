@@ -31,6 +31,16 @@ export function periodState(endsOn: string | null | undefined, today: string): P
   return daysLeft <= 0 ? { kind: "over", endsOn } : { kind: "running", endsOn, daysLeft };
 }
 
+/**
+ * Whether a student is among the active ones of «شاگردان من» (BUSINESS_RULES.md §15 *«شاگردان من» in
+ * two parts*, roadmap 15.7l): the coaching runs, or the student is from before the periods and
+ * waits for the days left. One whose period is over and was not renewed is inactive: still the
+ * trainer's student, in the closed part below; a «تمدید» brings them back.
+ */
+export function isActiveStudent(endsOn: string | null | undefined, today: string): boolean {
+  return periodState(endsOn, today).kind !== "over";
+}
+
 /** «دوره تا ۱۹ آذر ۱۴۰۵، ۱۲ روز مانده», or that it is over, or not given yet. */
 export function periodLine(state: PeriodState): string {
   switch (state.kind) {
