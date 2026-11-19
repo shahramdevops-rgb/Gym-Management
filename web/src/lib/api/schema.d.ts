@@ -2917,6 +2917,8 @@ export interface components {
         };
         AttendanceTotals: {
             /** Format: int32 */
+            early: number | string;
+            /** Format: int32 */
             onTime: number | string;
             /** Format: int32 */
             late: number | string;
@@ -4625,7 +4627,7 @@ export interface components {
             note?: null | string;
         };
         /** @enum {unknown} */
-        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled" | "CameAfter";
+        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled" | "CameAfter" | "Early";
         SessionResponse: {
             /** Format: time */
             start: string;

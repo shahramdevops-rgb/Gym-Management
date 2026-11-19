@@ -17,6 +17,7 @@ const badgeVariants = cva(
         success: "bg-success text-success-foreground [a&]:hover:bg-success/90",
         warning: "bg-warning text-warning-foreground",
         cardio: "bg-cardio text-neutral-950",
+        early: "bg-early text-white dark:text-neutral-950",
         guest: "bg-guest text-white dark:text-neutral-950",
         birthday: "bg-party-pink text-neutral-950",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",

@@ -157,7 +157,15 @@ public sealed class LeaveRequestTests
     {
         var mark = PresenceRules.MarkOnLeave(Today, Start, End, [new DayVisit(new TimeOnly(12, 50), null)], Today, new TimeOnly(20, 0));
 
-        (mark.State, mark.HadLeave, mark.MinutesEarly).ShouldBe((SessionPresence.OnTime, true, 10));
+        (mark.State, mark.HadLeave, mark.MinutesEarly).ShouldBe((SessionPresence.OnTime, true, null));
+    }
+
+    [Fact]
+    public void MarkOnLeave_CameEarlyAnyway_IsEarlyWithHadLeave()
+    {
+        var mark = PresenceRules.MarkOnLeave(Today, Start, End, [new DayVisit(new TimeOnly(12, 30), null)], Today, new TimeOnly(20, 0));
+
+        (mark.State, mark.HadLeave, mark.MinutesEarly).ShouldBe((SessionPresence.Early, true, 30));
     }
 
     [Fact]

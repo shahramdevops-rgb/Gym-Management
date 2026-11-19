@@ -5009,9 +5009,23 @@ on its own branch and session, in this order (proposed by Claude, accepted):
     that a search opens by itself; the title and `TrainerArea`'s card count the active ones
   - **Tests**: three new Vitest cases (the closed part, a search finding an inactive student,
     every period over) and the marks' case updated; walked at 390 px and 1440 px with a mocked API
-- [ ] **15.7m, the new on-time window** (domain, screens): 15 minutes before to 5 after is on time;
+- [x] **15.7m, the new on-time window** (built 1405/08/28 on `task/15.7m-on-time-window`, from
+      15.7l's branch; domain, screens, no migration): 15 minutes before to 5 after is on time;
       earlier «زودتر از موعد» with minutes from the start; later «تأخیر» from the start; earlier
-      days by the same rule (`PresenceRules`)
+      days by the same rule (`PresenceRules`), since nothing is stored
+  - **Domain**: `PresenceRules.OnTimeBeforeMinutes` (15) and `OnTimeAfterMinutes` (5) in place of
+    `OnTimeMinutes`; a state of its own, `SessionPresence.Early` (8), with `MinutesEarly` only for
+    it; `IsPresent()` (early, on time, late) for every count and for «مرخصی داشت»
+  - **API**: the month's totals carry `early`; the day's «حاضر» counts it (types regenerated)
+  - **Screens** (the developer took both of Claude's proposals): a badge «زودتر از موعد ۱۲:۳۰»
+    with «۳۰ دقیقه زودتر از موعد» under it, as «با تأخیر» has its minutes, in a turquoise of its
+    own (`--early`, Badge `early`; the developer, after the first screenshots: not on time's green); the «حاضر» box
+    shows the early too; the month's totals four a row, the first row came (زودتر از موعد،
+    به‌موقع، با تأخیر، بعد از سانس), the second did not (غایب، مرخصی، لغو شد), for the trainer's
+    «حضور» and the member's «حضور من» alike
+  - **Tests**: the domain's edges (12:44 early, 12:45 and 13:05 on time, 13:05:40 still on time,
+    13:06 late, an early visit still open at the start, leave and early), the integration cases
+    moved to the new window, Vitest for the badge, the «حاضر» box and the seven boxes
 - [ ] **15.7n, the SMS of the period's last days (پیامک پایان دوره)** (backend, panel, migration):
       a new member kind with its *N* (3 to 14, 7 to start, off at first), once per link and last
       day, the text in `SmsText` and `docs/sms-texts.md`; the trainer's mark in «شاگردان من» from the

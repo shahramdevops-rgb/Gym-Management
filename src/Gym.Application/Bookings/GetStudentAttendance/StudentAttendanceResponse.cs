@@ -23,7 +23,7 @@ public sealed record StudentAttendanceResponse(
 /// <param name="CheckedInAt">The check-in that counted; for a student who came after the session, that later one.</param>
 /// <param name="CheckedOutAt">That visit's check-out; <c>null</c> while it is open («داخل است») or when auto-closed.</param>
 /// <param name="AutoCheckedOut">The nightly auto-checkout closed that visit: «خروج ثبت نشد».</param>
-/// <param name="MinutesEarly">Checked in this many minutes before the start, still on time.</param>
+/// <param name="MinutesEarly">«زودتر از موعد» by this many minutes from the start (15.7m).</param>
 /// <param name="MinutesLate">Late by this many minutes from the start.</param>
 /// <param name="HadLeave">The student had leave from the session and came anyway: «مرخصی داشت» (15.7i).</param>
 public sealed record AttendanceItem(
@@ -43,5 +43,5 @@ public sealed record AttendanceItem(
 /// <summary>A visit to the gym outside the student's sessions, on <paramref name="Date"/>.</summary>
 public sealed record OutsideVisit(DateOnly Date, VisitTimes Visit);
 
-/// <summary>The sessions of the range by state; one not ended yet («هنوز نیامده») is in none.</summary>
-public sealed record AttendanceTotals(int OnTime, int Late, int CameAfter, int Absent, int Leave, int Cancelled);
+/// <summary>The sessions of the range by state; one not ended yet («هنوز نیامده») is in none. <paramref name="Early"/>: «زودتر از موعد» (15.7m).</summary>
+public sealed record AttendanceTotals(int Early, int OnTime, int Late, int CameAfter, int Absent, int Leave, int Cancelled);

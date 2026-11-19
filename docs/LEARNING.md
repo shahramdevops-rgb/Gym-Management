@@ -2576,3 +2576,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **A disclosure is a button with `aria-expanded`.** The closed part is a plain `<button aria-expanded aria-controls>` over a list that renders only when open; a screen reader hears "collapsed/expanded", and the tests find it by role and name («غیرفعال (۲)») instead of by class.
 - **Search must not hide what it found.** A match inside a closed part would look like "nothing found", so while a search is typed the part opens by itself (`inactiveOpen || searching`) without changing what the trainer chose to keep open.
 - **My notes:**
+
+## 15.7m — The new on-time window
+
+- **A rule worked out, never stored, changes the past for free.** Attendance is read from the desk's check-ins each time (`PresenceRules.Mark`), so moving the window from "up to 15 after" to "15 before to 5 after" needed no migration and no back-fill: last month reads by the new rule the moment the code is out. The trade-off is that nobody can see what the old rule said about a day.
+- **A state of its own beats a flag on another state.** "Early" could have stayed `OnTime` with minutes beside it, but then the badge would read «به‌موقع» next to «زودتر از موعد». `SessionPresence.Early` makes the compiler list every place that must decide what early means: TypeScript's `Record<SessionPresence, …>` refused to build until the labels and colours had it.
+- **Name the question, not the list.** "Present" was written as `OnTime or Late` in two places; adding Early would have meant finding both. `IsPresent()` is one extension method that the day's counts and «مرخصی داشت» both call.
+- **Two constants for two edges.** `OnTimeBeforeMinutes` and `OnTimeAfterMinutes` say which side of the start each number is on, where one `OnTimeMinutes` could only ever describe one side.
+- **Test the edges, including seconds.** 12:44 vs 12:45 and 13:05 vs 13:06 pin the window; 13:05:40 proves whole minutes are compared, as the desk shows them.
+- **My notes:**

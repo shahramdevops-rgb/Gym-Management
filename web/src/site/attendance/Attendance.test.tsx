@@ -72,10 +72,10 @@ const today = {
         {
           ...ali,
           ...visit,
-          state: "OnTime",
-          checkedInAt: "12:50:00",
+          state: "Early",
+          checkedInAt: "12:30:00",
           checkedOutAt: "14:40:00",
-          minutesEarly: 10,
+          minutesEarly: 30,
         },
         { ...reza, ...visit, state: "CameAfter", checkedInAt: "16:00:00" },
         { ...neda, ...visit, state: "Late", checkedInAt: "13:25:00", minutesLate: 25 },
@@ -138,7 +138,7 @@ const month = {
       checkedInAt: null,
     },
   ],
-  totals: { onTime: 0, late: 1, cameAfter: 0, absent: 0, leave: 1, cancelled: 0 },
+  totals: { early: 0, onTime: 0, late: 1, cameAfter: 0, absent: 0, leave: 1, cancelled: 0 },
   outside: [
     {
       date: "2026-10-25",
@@ -147,7 +147,7 @@ const month = {
   ],
 };
 
-describe("the trainer's attendance (15.7b, 15.7d)", () => {
+describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
   it("DayPage_Today_ShowsEachStudentsStateAndCheckOut", async () => {
     mockApi({
       ...emptyHome,
@@ -159,8 +159,9 @@ describe("the trainer's attendance (15.7b, 15.7d)", () => {
     const first = within(await screen.findByRole("list", { name: "شاگردان ۱۳:۰۰ تا ۱۴:۰۰" }));
     const [aliRow, rezaRow, nedaRow] = first.getAllByRole("listitem");
     expect(aliRow).toHaveTextContent("علی محمدی");
-    expect(aliRow).toHaveTextContent("به‌موقع ۱۲:۵۰");
-    expect(aliRow).toHaveTextContent("۱۰ دقیقه زودتر آمد · خروج ۱۴:۴۰");
+    expect(aliRow).toHaveTextContent("زودتر از موعد ۱۲:۳۰");
+    expect(aliRow).toHaveTextContent("۳۰ دقیقه زودتر از موعد · خروج ۱۴:۴۰");
+    expect(aliRow).not.toHaveTextContent("به‌موقع");
     expect(rezaRow).toHaveTextContent("بعد از سانس آمد ۱۶:۰۰");
     expect(rezaRow).toHaveTextContent("داخل است");
     expect(rezaRow).not.toHaveTextContent("غایب");
@@ -349,6 +350,7 @@ describe("the trainer's attendance (15.7b, 15.7d)", () => {
 
     const totals = within(screen.getByRole("list", { name: "جمع ماه" }));
     expect(totals.getAllByRole("listitem").map((box) => box.textContent)).toEqual([
+      "۰زودتر از موعد",
       "۰به‌موقع",
       "۱با تأخیر",
       "۰بعد از سانس",
@@ -431,6 +433,20 @@ describe("the trainer's attendance (15.7b, 15.7d)", () => {
     expect(box(/با تأخیر/)).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("listitem", { name: "۱۵:۰۰ تا ۱۶:۰۰" })).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "آمدند، بدون سانس" })).toBeInTheDocument();
+  });
+
+  it("DayPage_PressPresent_KeepsTheEarlyAndTheLate", async () => {
+    filterApi();
+    renderSite("/today", { access: trainerOnly });
+    await screen.findByRole("list", { name: "جمع امروز" });
+
+    fireEvent.click(box(/حاضر/));
+
+    // «زودتر از موعد» came to the session, so it is present (15.7m); came after is not.
+    const sessions = within(screen.getByRole("list", { name: "سانس‌های روز" }));
+    expect(sessions.getByText("علی محمدی")).toBeInTheDocument();
+    expect(sessions.getByText("ندا حسینی")).toBeInTheDocument();
+    expect(sessions.queryByText("رضا کریمی")).not.toBeInTheDocument();
   });
 
   it("DayPage_PressStudents_LeavesOutLeaveAndCancelled", async () => {

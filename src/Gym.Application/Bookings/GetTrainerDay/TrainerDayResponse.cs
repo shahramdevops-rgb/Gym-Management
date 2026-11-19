@@ -37,7 +37,7 @@ public sealed record DaySession(
 /// <param name="CheckedInAt">The check-in that counted; for a student who came after the session, that later one.</param>
 /// <param name="CheckedOutAt">That visit's check-out; <c>null</c> while it is open («داخل است») or when auto-closed.</param>
 /// <param name="AutoCheckedOut">The nightly auto-checkout closed that visit: «خروج ثبت نشد».</param>
-/// <param name="MinutesEarly">Checked in this many minutes before the start: «۱۰ دقیقه زودتر آمد», still on time.</param>
+/// <param name="MinutesEarly">«زودتر از موعد» by this many minutes from the start: «۳۰ دقیقه زودتر از موعد» (15.7m).</param>
 /// <param name="MinutesLate">Late by this many minutes from the start: «۲۵ دقیقه تأخیر».</param>
 /// <param name="HadLeave">The student had leave from the session and came anyway: «مرخصی داشت» (15.7i).</param>
 public sealed record DayStudent(
@@ -54,7 +54,7 @@ public sealed record DayStudent(
 
 /// <summary>
 /// The day's counts (15.7d): each student's place in a session once. <paramref name="Present"/> is
-/// everyone who came to the session, <paramref name="Late"/> those of them who came late;
+/// everyone who came to the session (early, on time or late), <paramref name="Late"/> those of them who came late;
 /// <paramref name="CameAfter"/> came after it ended, neither present nor absent. «مرخصی» and «لغو شد»
 /// are in none, «هنوز نیامده» only in <paramref name="Students"/>.
 /// </summary>

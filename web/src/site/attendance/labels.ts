@@ -5,6 +5,8 @@ import type { SessionPresence } from "./api";
 
 /** A student's state in a session as the trainer reads it (BUSINESS_RULES.md §15 *Attendance for the trainer*). */
 export const presenceLabels: Record<SessionPresence, string> = {
+  // More than 15 minutes before the start; present, as on time is (15.7m, the developer).
+  Early: "زودتر از موعد",
   OnTime: "به‌موقع",
   Late: "با تأخیر",
   Absent: "غایب",
@@ -16,13 +18,15 @@ export const presenceLabels: Record<SessionPresence, string> = {
 };
 
 export type PresenceVariant =
-  "success" | "warning" | "destructive" | "outline" | "secondary" | "default";
+  "success" | "early" | "warning" | "destructive" | "outline" | "secondary" | "default";
 
 /**
- * Green for came, amber for late, blue for came after the session, red only for truly absent; a
- * leave or a cancelled session is no one's fault.
+ * Green for on time, turquoise for early (its own colour, asked by the developer with 15.7m), amber
+ * for late, blue for came after the session, red only for truly absent; a leave or a cancelled
+ * session is no one's fault.
  */
 export const presenceVariants: Record<SessionPresence, PresenceVariant> = {
+  Early: "early",
   OnTime: "success",
   Late: "warning",
   Absent: "destructive",
@@ -50,8 +54,8 @@ export function formatMinutes(minutes: number): string {
     : `${toPersianDigits(hours)} ساعت و ${toPersianDigits(rest)} دقیقه`;
 }
 
-/** «۱۰ دقیقه زودتر آمد»: checked in before the start, still on time (15.7d). */
-export const formatEarly = (minutes: number) => `${formatMinutes(minutes)} زودتر آمد`;
+/** «۳۰ دقیقه زودتر از موعد»: more than 15 minutes before the start, counted from it (15.7m). */
+export const formatEarly = (minutes: number) => `${formatMinutes(minutes)} زودتر از موعد`;
 
 /** «۲۵ دقیقه تأخیر»: late, counted from the start (15.7d). */
 export const formatLate = (minutes: number) => `${formatMinutes(minutes)} تأخیر`;

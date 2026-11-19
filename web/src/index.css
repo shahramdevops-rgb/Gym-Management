@@ -79,6 +79,10 @@
      usage view's unused amber, which is never on the same map. */
   --cardio: oklch(0.72 0.15 100);
   --door-cardio: oklch(0.95 0.07 100);
+  /* A student who came «زودتر از موعد» (BUSINESS_RULES.md §15, 15.7m): a turquoise of its own,
+     present like on time's green but apart from it, from came-after's blue and from late's amber
+     (asked by the developer, 1405/08/28). */
+  --early: oklch(0.58 0.1 195);
   /* A single visit's door (BUSINESS_RULES.md §6, §4 تک‌جلسه): a violet of its own (asked by the
      developer, 1405/08/08), so the desk tells it from a member on a plan. The usage view's violet is
      never on the same map. */
@@ -194,6 +198,7 @@
   --door-guest: oklch(0.28 0.05 235);
   --cardio: oklch(0.86 0.15 100);
   --door-cardio: oklch(0.3 0.06 100);
+  --early: oklch(0.76 0.11 195);
   --single-visit: oklch(0.72 0.15 300);
   --door-single-visit: oklch(0.29 0.06 300);
   --tile-cardio: oklch(0.3 0.06 100);
@@ -544,6 +549,7 @@
   --color-guest: var(--guest);
   --color-door-guest: var(--door-guest);
   --color-cardio: var(--cardio);
+  --color-early: var(--early);
   --color-door-cardio: var(--door-cardio);
   --color-single-visit: var(--single-visit);
   --color-door-single-visit: var(--door-single-visit);

@@ -2955,7 +2955,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     view keeps them.
   - **Per student and per month**: each session of the student in a Jalali month, with its state
     and the month's totals. Sessions with an earlier trainer show too, with that trainer's name
-    (*A member and their trainer*: a new trainer sees the earlier attendance).
+    (*A member and their trainer*: a new trainer sees the earlier attendance). «زودتر از موعد» has
+    a box of its own in the totals, beside on time (*proposed by Claude, accepted by the
+    developer*, 1405/08/28, 15.7m).
   - **The member does not see their monthly attendance yet**: left for later, only if asked.
 - **More for the trainer, decided with 15.7d** (*decided by the developer*, 1405/08/19, from the
   developer's list for attendance; the points marked *proposed* were Claude's and the developer

@@ -39,7 +39,7 @@ internal static class AttendanceReading
         var last = to < today ? to : today;
         if (last < from)
         {
-            return new AttendanceRead([], new AttendanceTotals(0, 0, 0, 0, 0, 0), []);
+            return new AttendanceRead([], new AttendanceTotals(0, 0, 0, 0, 0, 0, 0), []);
         }
 
         var places = await BookedPlaces.OfMemberAsync(db, memberId, from, last, cancellationToken);
@@ -104,6 +104,7 @@ internal static class AttendanceReading
         int Count(SessionPresence state) => items.Count(item => item.State == state);
 
         var totals = new AttendanceTotals(
+            Count(SessionPresence.Early),
             Count(SessionPresence.OnTime),
             Count(SessionPresence.Late),
             Count(SessionPresence.CameAfter),
