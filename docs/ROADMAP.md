@@ -5227,6 +5227,24 @@ its own. The developer answered three questions and changed the third answer (be
     then screenshots of the home with both cards, the inactive page, a profile, and a month with
     every row kind, at 390 px and 1440 px, light and dark; Playwright over `npm run dev:site` with
     a mocked API, or a scratch database with a seeded trainer, students and visits (dropped after)
+- [x] **Released 1405/08/29 (2026-11-20), 13:51, as `20261120-1351-072ea6d`** (previous
+      `20261120-0157-6c8876c`), by day, the developer's call: 15.7p alone, `main` fast-forwarded to
+      `072ea6d`. Left out on purpose (the developer, again): 6.5.39, the free plan, on its own branch
+  - Before: the full run at night on `task/15.7p-student-profile` before its commit, `npm run e2e`
+    23 green at 04:22; no commit since, and `main` had not moved (`6557e30`), so the released tree
+    is the tested one. Nothing outside the site app changed for the panel (two colour tokens and
+    two Badge variants added), so the README screenshots stand
+  - Migrations: none. The removed `SessionPresence.CameAfter` was never stored (worked out on each
+    read), so no row to carry
+  - Server: `./backup.sh run` → `gym-20261120-135101.dump` (3,507,616 bytes, sha256
+    `4c43ec92…a46cd3ce`) and `files-20261120-135101.tar.gz` (111 bytes, no upload yet), both
+    copied to `D:\gymbackups`, the hashes matching. `release.sh` through a new ssh-agent
+  - After: api healthy on the new tag, no `ERR`/`FTL` in the API's log since the start, disk 16%,
+    3.0 GiB memory available; from outside, the panel's `/health` (`Healthy`), the panel, the app,
+    its new `/students/inactive` and `/students/{id}/profile`, the public page, `/shop/`,
+    `/contact/` and `sitemap.xml` answer 200
+  - A rollback to `20261120-0157-6c8876c` is harmless: no migration, and the old version reads
+    the same rows
 
 ### Release 3 — The monthly assessment (priority 2)
 
