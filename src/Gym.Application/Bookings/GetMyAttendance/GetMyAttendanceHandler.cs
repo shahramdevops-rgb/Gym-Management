@@ -10,8 +10,9 @@ namespace Gym.Application.Bookings.GetMyAttendance;
 /// <summary>
 /// «حضور من» (BUSINESS_RULES.md §15 <i>The member's own attendance</i>, task 15.7j): the member's
 /// own sessions of a range with any trainer, each with its state as their trainer sees it, and the
-/// totals. Read only. The visits outside their sessions are the trainer's alone: the member sees
-/// their visits in «سوابق من».
+/// totals. Read only. Since 15.7p their «روز دیگر» visits too, every one of
+/// the range (their own visits, not only from the day they became their
+/// trainer's student, as the trainer's are).
 /// </summary>
 public sealed class GetMyAttendanceHandler(IAppDbContext db, IGymCalendar calendar)
 {
@@ -35,8 +36,8 @@ public sealed class GetMyAttendanceHandler(IAppDbContext db, IGymCalendar calend
             .SingleOrDefaultAsync(cancellationToken);
 
         var read = await AttendanceReading.ReadAsync(
-            db, calendar, member.Value.Id, from, to, viewingTrainerId: trainerNow, outsideSince: null, cancellationToken);
+            db, calendar, member.Value.Id, from, to, viewingTrainerId: trainerNow, otherDaysSince: from, cancellationToken);
 
-        return new MyAttendanceResponse(from, to, read.Items, read.Totals);
+        return new MyAttendanceResponse(from, to, read.Items, read.Totals, read.OtherDays);
     }
 }

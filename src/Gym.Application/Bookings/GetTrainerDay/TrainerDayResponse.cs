@@ -55,10 +55,11 @@ public sealed record DayStudent(
 /// <summary>
 /// The day's counts (15.7d): each student's place in a session once. <paramref name="Present"/> is
 /// everyone who came to the session (early, on time or late), <paramref name="Late"/> those of them who came late;
-/// <paramref name="CameAfter"/> came after it ended, neither present nor absent. «مرخصی» and «لغو شد»
-/// are in none, «هنوز نیامده» only in <paramref name="Students"/>.
+/// <paramref name="OutsideSession"/> came that day at another hour (15.7p, in place of «بعد از
+/// سانس»), neither present nor absent. «مرخصی» and «لغو شد» are in none, «هنوز نیامده» only in
+/// <paramref name="Students"/>.
 /// </summary>
-public sealed record DayTotals(int Students, int Present, int Late, int CameAfter, int Absent);
+public sealed record DayTotals(int Students, int Present, int Late, int OutsideSession, int Absent);
 
 /// <summary>A student of the trainer who came to the gym that day outside their sessions.</summary>
 public sealed record OutsideStudent(Guid MemberId, string FullName, string PhoneNumber, IReadOnlyList<VisitTimes> Visits);

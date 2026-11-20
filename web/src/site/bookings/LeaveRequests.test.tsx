@@ -102,7 +102,7 @@ describe("the trainer's leave requests", () => {
           date: "2026-11-07",
           isToday: true,
           outside: [],
-          totals: { students: 1, present: 1, late: 1, cameAfter: 0, absent: 0 },
+          totals: { students: 1, present: 1, late: 1, outsideSession: 0, absent: 0 },
           sessions: [
             {
               start: "13:00:00",

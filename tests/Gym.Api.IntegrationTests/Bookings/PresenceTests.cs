@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
@@ -78,7 +79,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         var student = StudentAt(today, 13);
         (student.State, student.MinutesLate).ShouldBe((SessionPresence.Late, 6));
-        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 1, CameAfter: 0, Absent: 0));
+        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 1, OutsideSession: 0, Absent: 0));
     }
 
     [Fact]
@@ -89,20 +90,22 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         var today = await TodayAsync(gym, At(gym.Saturday, 13, 30));
 
         StudentAt(today, 13).State.ShouldBe(SessionPresence.NotYet);
-        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 0, Late: 0, CameAfter: 0, Absent: 0));
+        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 0, Late: 0, OutsideSession: 0, Absent: 0));
     }
 
     [Fact]
-    public async Task Today_CheckInAfterTheEnd_IsCameAfterNotAbsent()
+    public async Task Today_CheckInAfterTheEnd_IsOutsideSessionNotAbsent()
     {
+        // 15.7p (the developer, 1405/08/29): came that day at another hour, «خارج از سانس».
         var gym = await GymAsync();
         await VisitAsync(gym.MemberId, At(gym.Saturday, 16, 0));
 
         var today = await TodayAsync(gym, At(gym.Saturday, 18, 0));
 
         var student = StudentAt(today, 13);
-        (student.State, student.CheckedInAt).ShouldBe((SessionPresence.CameAfter, new TimeOnly(16, 0)));
-        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 0, Late: 0, CameAfter: 1, Absent: 0));
+        (student.State, student.CheckedInAt).ShouldBe((SessionPresence.OutsideSession, new TimeOnly(16, 0)));
+        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 0, Late: 0, OutsideSession: 1, Absent: 0));
+        today.Outside.ShouldHaveSingleItem().Visits.ShouldHaveSingleItem().CheckedInAt.ShouldBe(new TimeOnly(16, 0));
     }
 
     [Fact]
@@ -131,14 +134,16 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
     }
 
     [Fact]
-    public async Task Today_EarlyCheckInLeftBeforeTheStart_IsAbsent()
+    public async Task Today_EarlyCheckInLeftBeforeTheStart_IsOutsideSession()
     {
         var gym = await GymAsync();
         await VisitAsync(gym.MemberId, At(gym.Saturday, 10, 0), checkedOutAt: At(gym.Saturday, 12, 0));
 
         var today = await TodayAsync(gym, At(gym.Saturday, 15, 0));
 
-        StudentAt(today, 13).State.ShouldBe(SessionPresence.Absent);
+        var student = StudentAt(today, 13);
+        (student.State, student.CheckedInAt, student.CheckedOutAt).ShouldBe(
+            (SessionPresence.OutsideSession, new TimeOnly(10, 0), new TimeOnly(12, 0)));
     }
 
     [Fact]
@@ -227,7 +232,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         var student = StudentAt(today, 13);
         (student.State, student.MinutesEarly, student.CheckedInAt).ShouldBe((SessionPresence.Early, 20, new TimeOnly(12, 40)));
-        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 0, CameAfter: 0, Absent: 0));
+        today.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 0, OutsideSession: 0, Absent: 0));
     }
 
     [Theory]
@@ -292,7 +297,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         var session = day.Sessions.Single(row => row.Start == new TimeOnly(13, 0));
         (session.Started, session.Ended).ShouldBe((true, true));
         StudentAt(day, 13).State.ShouldBe(SessionPresence.Late);
-        day.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 1, CameAfter: 0, Absent: 0));
+        day.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 1, OutsideSession: 0, Absent: 0));
     }
 
     [Fact]
@@ -324,7 +329,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         var day = await DayAsync(gym, gym.Saturday, At(gym.Saturday, 20, 0));
 
-        day.Totals.ShouldBe(new DayTotals(Students: 1, Present: 0, Late: 0, CameAfter: 0, Absent: 1));
+        day.Totals.ShouldBe(new DayTotals(Students: 1, Present: 0, Late: 0, OutsideSession: 0, Absent: 1));
     }
 
     [Fact]
@@ -377,7 +382,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         var student = StudentAt(day, 13);
         (student.State, student.HadLeave, student.MinutesLate).ShouldBe((SessionPresence.Late, true, 25));
-        day.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 1, CameAfter: 0, Absent: 0));
+        day.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 1, OutsideSession: 0, Absent: 0));
         day.Outside.ShouldBeEmpty();
     }
 
@@ -461,14 +466,15 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
             (nextSaturday, SessionPresence.Absent),
         ]);
         attendance.Sessions.ShouldAllBe(row => row.TrainerName == null);
-        attendance.Totals.ShouldBe(new AttendanceTotals(Early: 1, OnTime: 0, Late: 1, CameAfter: 0, Absent: 1, Leave: 0, Cancelled: 0));
+        attendance.Totals.ShouldBe(new AttendanceTotals(
+            Early: 1, OnTime: 0, Late: 1, OutsideSession: 0, Absent: 1, Leave: 0, Cancelled: 0, OtherDayVisits: 0));
         attendance.Sessions[0].ShouldSatisfyAllConditions(
             first => first.CheckedOutAt.ShouldBe(new TimeOnly(15, 0)),
             first => first.MinutesLate.ShouldBe(20));
         attendance.Sessions[1].ShouldSatisfyAllConditions(
             second => second.MinutesEarly.ShouldBe(20),
             second => second.CheckedOutAt.ShouldBeNull());
-        attendance.Outside.ShouldBeEmpty();
+        attendance.OtherDays.ShouldBeEmpty();
     }
 
     // ---- «حضور من», the member's own (15.7j) ----
@@ -487,10 +493,31 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         var trainers = await AttendanceAsync(gym, gym.Saturday, nextSaturday.AddDays(3), at);
 
         mine.Sessions.ShouldBe(trainers.Sessions);
+        // The second visit on Monday, a day they came to their session, shows nowhere (15.7p).
+        mine.Totals.ShouldBe(new AttendanceTotals(
+            Early: 0, OnTime: 1, Late: 1, OutsideSession: 0, Absent: 1, Leave: 0, Cancelled: 0, OtherDayVisits: 0));
         mine.Totals.ShouldBe(trainers.Totals);
-        mine.Totals.ShouldBe(new AttendanceTotals(Early: 0, OnTime: 1, Late: 1, CameAfter: 0, Absent: 1, Leave: 0, Cancelled: 0));
+        mine.OtherDays.ShouldBeEmpty();
+        trainers.OtherDays.ShouldBeEmpty();
         mine.Sessions.ShouldAllBe(row => row.TrainerName == null);
-        trainers.Outside.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task MyAttendance_VisitBeforeTheTrainer_IsTheMembersNotTheTrainers()
+    {
+        // The trainer sees visits from the day the member became their student (15.7d); the member
+        // sees every visit of the range, their own (15.7p).
+        var gym = await GymAsync();
+        var yesterday = Today().AddDays(-1);
+        await VisitAsync(gym.MemberId, At(yesterday, 10, 0));
+        var at = At(gym.Saturday, 20, 0);
+
+        var mine = await MyAttendanceAsync(gym, yesterday, gym.Saturday, at);
+        var trainers = await AttendanceAsync(gym, yesterday, gym.Saturday, at);
+
+        mine.OtherDays.ShouldHaveSingleItem().Date.ShouldBe(yesterday);
+        mine.Totals.OtherDayVisits.ShouldBe(1);
+        trainers.OtherDays.ShouldBeEmpty();
     }
 
     [Fact]
@@ -517,7 +544,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         asMember.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await asMember.ReadJsonAsync();
-        body.TryGetProperty("outside", out _).ShouldBeFalse();
+        body.GetProperty("otherDays").ValueKind.ShouldBe(JsonValueKind.Array);
         body.TryGetProperty("memberId", out _).ShouldBeFalse();
         asTrainer.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
@@ -535,7 +562,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
     }
 
     [Fact]
-    public async Task Attendance_CheckInsOutsideTheSessions_AreListedByDate()
+    public async Task Attendance_SecondVisitOnASessionDay_NotListed_VisitOnADayWithNone_IsOtherDay()
     {
         var gym = await GymAsync();
         await VisitAsync(gym.MemberId, At(gym.Saturday, 13, 5));
@@ -544,12 +571,13 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         var attendance = await AttendanceAsync(gym, gym.Saturday, gym.Saturday.AddDays(3), At(gym.Saturday.AddDays(3), 20, 0));
 
+        // 15.7p: Saturday's session tells that day; only Sunday, with no session, is «روز دیگر».
         attendance.Sessions.Single(row => row.Date == gym.Saturday).State.ShouldBe(SessionPresence.OnTime);
-        attendance.Outside.ShouldBe(
+        attendance.OtherDays.ShouldBe(
         [
-            new OutsideVisit(gym.Saturday, new VisitTimes(new TimeOnly(18, 0), new TimeOnly(19, 30), AutoCheckedOut: false)),
-            new OutsideVisit(gym.Saturday.AddDays(1), new VisitTimes(new TimeOnly(10, 0), null, AutoCheckedOut: true)),
+            new OtherDayVisit(gym.Saturday.AddDays(1), new VisitTimes(new TimeOnly(10, 0), null, AutoCheckedOut: true)),
         ]);
+        attendance.Totals.OtherDayVisits.ShouldBe(1);
     }
 
     [Fact]
@@ -561,7 +589,135 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         var attendance = await AttendanceAsync(gym, yesterday, gym.Saturday, At(gym.Saturday, 20, 0));
 
-        attendance.Outside.ShouldBeEmpty();
+        attendance.OtherDays.ShouldBeEmpty();
+        attendance.Totals.OtherDayVisits.ShouldBe(0);
+    }
+
+    // ---- «خارج از سانس» and «روز دیگر» (15.7p, the developer, 1405/08/29) ----
+
+    [Fact]
+    public async Task Attendance_TwoVisitsOnADayWithNoSession_AreBothOtherDay()
+    {
+        var gym = await GymAsync();
+        var sunday = gym.Saturday.AddDays(1);
+        await VisitAsync(gym.MemberId, At(sunday, 9, 0), checkedOutAt: At(sunday, 10, 0));
+        await VisitAsync(gym.MemberId, At(sunday, 18, 0));
+
+        var attendance = await AttendanceAsync(gym, gym.Saturday, sunday, At(sunday, 20, 0));
+
+        attendance.OtherDays.Select(visit => (visit.Date, visit.Visit.CheckedInAt)).ShouldBe(
+        [
+            (sunday, new TimeOnly(9, 0)),
+            (sunday, new TimeOnly(18, 0)),
+        ]);
+        attendance.Totals.OtherDayVisits.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Attendance_VisitWhenTheSessionWasCancelled_IsOtherDay()
+    {
+        var gym = await GymAsync();
+        var monday = gym.Saturday.AddDays(2);
+        await SetDayAsync(gym, monday, Session(15, 2));
+        await VisitAsync(gym.MemberId, At(monday, 13, 0));
+
+        var attendance = await AttendanceAsync(gym, monday, monday, At(monday, 20, 0));
+
+        attendance.Sessions.ShouldHaveSingleItem().State.ShouldBe(SessionPresence.Cancelled);
+        attendance.OtherDays.ShouldHaveSingleItem().Date.ShouldBe(monday);
+        attendance.Totals.ShouldBe(new AttendanceTotals(0, 0, 0, 0, 0, 0, Cancelled: 1, OtherDayVisits: 1));
+    }
+
+    [Fact]
+    public async Task Attendance_VisitAtAnotherHourOnALeaveDate_StaysLeaveAndIsOtherDay()
+    {
+        var gym = await GymAsync();
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 18, 0));
+
+        var attendance = await AttendanceAsync(gym, gym.Saturday, gym.Saturday, At(gym.Saturday, 20, 0));
+
+        attendance.Sessions.ShouldHaveSingleItem().State.ShouldBe(SessionPresence.Leave);
+        attendance.OtherDays.ShouldHaveSingleItem().Visit.CheckedInAt.ShouldBe(new TimeOnly(18, 0));
+    }
+
+    [Fact]
+    public async Task Attendance_CameToTheSessionOnALeaveDate_NotListedAsOtherDay()
+    {
+        var gym = await GymAsync();
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 13, 0));
+
+        var attendance = await AttendanceAsync(gym, gym.Saturday, gym.Saturday, At(gym.Saturday, 20, 0));
+
+        var session = attendance.Sessions.ShouldHaveSingleItem();
+        (session.State, session.HadLeave).ShouldBe((SessionPresence.OnTime, true));
+        attendance.OtherDays.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Attendance_VisitHoursBeforeTheSession_NotYetThenOutsideSession()
+    {
+        var gym = await GymAsync();
+        var monday = gym.Saturday.AddDays(2);
+        await VisitAsync(gym.MemberId, At(monday, 10, 0), checkedOutAt: At(monday, 11, 0));
+
+        var noon = await AttendanceAsync(gym, monday, monday, At(monday, 12, 0));
+        var evening = await AttendanceAsync(gym, monday, monday, At(monday, 20, 0));
+
+        // The 13:00 session has not begun: «هنوز نیامده»; once it ends, the morning visit makes it «خارج از سانس».
+        noon.Sessions.ShouldHaveSingleItem().State.ShouldBe(SessionPresence.NotYet);
+        var session = evening.Sessions.ShouldHaveSingleItem();
+        (session.State, session.CheckedInAt).ShouldBe((SessionPresence.OutsideSession, new TimeOnly(10, 0)));
+        evening.OtherDays.ShouldBeEmpty();
+        (evening.Totals.OutsideSession, evening.Totals.Absent).ShouldBe((1, 0));
+    }
+
+    [Fact]
+    public async Task Attendance_VisitsAfterTheMissedSession_OutsideSessionWithTheFirstOne()
+    {
+        var gym = await GymAsync();
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 15, 0), checkedOutAt: At(gym.Saturday, 16, 0));
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 19, 0));
+
+        var attendance = await AttendanceAsync(gym, gym.Saturday, gym.Saturday, At(gym.Saturday, 20, 0));
+
+        var session = attendance.Sessions.ShouldHaveSingleItem();
+        (session.State, session.CheckedInAt, session.CheckedOutAt).ShouldBe(
+            (SessionPresence.OutsideSession, new TimeOnly(15, 0), new TimeOnly(16, 0)));
+        attendance.OtherDays.ShouldBeEmpty();
+        attendance.Totals.ShouldBe(new AttendanceTotals(0, 0, 0, OutsideSession: 1, Absent: 0, 0, 0, 0));
+    }
+
+    [Fact]
+    public async Task MyAttendance_OutsideSessionAndOtherDay_TheMemberSeesBoth()
+    {
+        var gym = await GymAsync();
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 18, 0), checkedOutAt: At(gym.Saturday, 19, 0));
+        await VisitAsync(gym.MemberId, At(gym.Saturday.AddDays(1), 10, 0));
+
+        var mine = await MyAttendanceAsync(gym, gym.Saturday, gym.Saturday.AddDays(1), At(gym.Saturday.AddDays(1), 20, 0));
+
+        mine.Sessions.ShouldHaveSingleItem().State.ShouldBe(SessionPresence.OutsideSession);
+        mine.OtherDays.ShouldHaveSingleItem().Date.ShouldBe(gym.Saturday.AddDays(1));
+        (mine.Totals.OutsideSession, mine.Totals.OtherDayVisits).ShouldBe((1, 1));
+    }
+
+    [Fact]
+    public async Task GetAttendance_VisitOnADayWithNoSession_IsInOtherDays()
+    {
+        var gym = await GymAsync();
+        var today = Today();
+        await VisitAsync(gym.MemberId, At(today, 0, 1));
+
+        using var response = await gym.Client.SendAsync(
+            Send(HttpMethod.Get, $"/api/site/coaching/students/{gym.MemberId}/attendance?from={Iso(today)}&to={Iso(today)}", gym.TrainerToken),
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.ReadJsonAsync();
+        body.GetProperty("otherDays").EnumerateArray().ShouldHaveSingleItem();
+        body.GetProperty("totals").GetProperty("otherDayVisits").GetInt32().ShouldBe(1);
     }
 
     [Fact]
@@ -572,7 +728,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         var attendance = await AttendanceAsync(gym, gym.Saturday, gym.Saturday.AddDays(20), At(gym.Saturday, 12, 0));
 
         attendance.Sessions.ShouldHaveSingleItem().State.ShouldBe(SessionPresence.NotYet);
-        attendance.Totals.ShouldBe(new AttendanceTotals(0, 0, 0, 0, 0, 0, 0));
+        attendance.Totals.ShouldBe(new AttendanceTotals(0, 0, 0, 0, 0, 0, 0, 0));
     }
 
     [Fact]
@@ -585,7 +741,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         var attendance = await AttendanceAsync(gym, gym.Saturday, gym.Saturday.AddDays(3), At(gym.Saturday.AddDays(3), 20, 0));
 
         attendance.Sessions.Select(row => row.State).ShouldBe([SessionPresence.Leave, SessionPresence.Cancelled]);
-        attendance.Totals.ShouldBe(new AttendanceTotals(0, 0, 0, 0, 0, Leave: 1, Cancelled: 1));
+        attendance.Totals.ShouldBe(new AttendanceTotals(0, 0, 0, 0, 0, Leave: 1, Cancelled: 1, OtherDayVisits: 0));
     }
 
     [Fact]

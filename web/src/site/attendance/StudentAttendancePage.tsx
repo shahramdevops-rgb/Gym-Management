@@ -20,8 +20,9 @@ import { monthOf, monthRange } from "./labels";
  * A student's «حضور» (BUSINESS_RULES.md §15 *Attendance for the trainer*, roadmap 15.7b): their
  * sessions of one Jalali month up to today, each with its state, and the month's totals in small
  * boxes. A session with an earlier trainer shows that trainer's name. The month moves back as far
- * as the trainer likes and forward up to this one. Under them, «خارج از سانس» (15.7d): the visits
- * that counted for none of the student's sessions. Only a trainer reaches it.
+ * as the trainer likes and forward up to this one. Since 15.7p a session they missed but came that
+ * day at another hour reads «خارج از سانس», and a visit on a day with no session is a row «روز
+ * دیگر» among the sessions. Only a trainer reaches it.
  */
 export function StudentAttendancePage() {
   const { memberId = "" } = useParams();
@@ -66,7 +67,7 @@ export function StudentAttendancePage() {
         <AttendanceMonth
           totals={attendance.data.totals}
           sessions={attendance.data.sessions}
-          outside={attendance.data.outside}
+          otherDays={attendance.data.otherDays}
           empty="در این ماه سانسی نداشته است."
         />
       )}

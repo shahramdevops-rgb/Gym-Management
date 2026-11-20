@@ -5118,9 +5118,59 @@ on its own branch and session, in this order (proposed by Claude, accepted):
 #### The developer's list, part four (asked 1405/08/29, after the release above)
 Asked right after the 2026-11-20 release; the plan written that night, to be built in a session of
 its own. The developer answered three questions and changed the third answer (below).
-- [ ] **15.7p, the inactive students' card, the student's profile, and every visit in the month**
-      (on its own branch from `main`). Expected: screens, plus a small change to the student's
-      attendance read; no migration
+- [x] **15.7p, the inactive students' card, the student's profile, and every visit in the month**
+      (built 1405/08/29 on `task/15.7p-student-profile`, from `main`; screens and the student's
+      attendance read, no migration), with the developer's asks of the same day, after seeing the
+      first build: **every count box in its state's colour**; **«خارج از سانس» a session's own
+      state**, in place of «بعد از سانس آمد» (missed the session but came that day at another
+      hour, before or after: not absent; absent only when they did not come that day at all; dark
+      blue); visits get a row only on a day with no session to come to, **«روز دیگر»**; **eight
+      boxes, four a row, for the trainer and «حضور من» alike** (the member sees their own «روز
+      دیگر», all of the month); and **the phone number only on the profile**, a call icon in its
+      place in every list (§15 *Attendance for the trainer*, *The member's own attendance*, *The
+      student's profile and every visit in the month*). A middle build that made such a session
+      «غایب» with «خارج از سانس» rows was a misreading, corrected before any commit
+  - **The developer's second round** (1405/08/29), as built:
+    - Domain: `PresenceRules.Mark` gives `OutsideSession` (9) once the session ends with no
+      check-in for it but another that day (shown: the first after the end, else the last before
+      the start), `Absent` with none; `SessionPresence.CameAfter` (7) removed, never stored so
+      nothing to carry; `MarkOnLeave` keeps «مرخصی» for a check-in at another hour
+    - Application: `DayTotals.OutsideSession` in place of `CameAfter`; `AttendanceTotals` (early,
+      on time, late, outside the session, absent, leave, cancelled, other-day visits);
+      `OtherDayVisit` and `OtherDays` in place of 15.7p's first `OutsideVisit`/`Kind`, only for a
+      day with no session still in the timetable (a cancelled or leave day is one); `GET
+      /me/attendance` sends them too (every visit of the range)
+    - Screens: `AttendanceMonth` eight boxes and the «روز دیگر» rows; the day page's five boxes
+      with «خارج از سانس» (`DayFilter.outsideSession`; an old `?show=cameAfter` shows everyone);
+      token `--outside-session` and Badge variant `outsideSession`; `Person` shows `CallButton` (a
+      round call icon, «تماس با …») in place of the number, which only the profile shows, beside it
+    - Tests: domain 1486, `PresenceTests` 53; Vitest updated (the day page's boxes, filter and
+      colours, the absent card, the month's rows and eight boxes for both, the call icon in the
+      lists and the number on the profile)
+  - **Built, beyond the plan below** (Claude's, to show the developer on the screenshots):
+    - The count boxes take their badge's colour (`attendance/tones.ts`, `toneOf(variant)`, so a
+      box and its rows never differ): a pale tint mixed with the card's colour, not see-through
+      (on the page's coloured background a see-through tint was muddy), the number in the colour;
+      in the month (the trainer's and the member's «حضور من»), on the day page and in the home's
+      «امروز»; a pressed box on the day page fills with its colour (`«شاگردان»` dark). Tokens
+      `--early-ink` and `--other-day` (light and dark), Badge variant `otherDay`
+    - The profile's period is one line, «تا …، n روز مانده» / «… تمام شد» / «مشخص نشده است», in
+      amber when «شاگردان من» would mark it, instead of a badge repeating it; its back arrow goes
+      to the list the student is in
+    - On the day page a name is a link only for someone still the trainer's student (an earlier
+      day may show a former one), from the students' read the home makes anyway
+    - `studentsOf` and `StudentPart` in `coaching/period.ts`, so the home's cards do not pull the
+      lazy list pages into the first download (15.7c); the two list pages share `StudentList.tsx`
+    - The month's list is named «حضور ماه» (it holds visits too); with visits and no session the
+      visits still show
+  - **Tests**: integration `PresenceTests` 51 (8 new: two visits on a day with none, a cancelled
+    day, a leave date, hours before the session, «بعد از سانس آمد» not repeated, the member's
+    counts, the kind as text over the endpoint; the totals of the old ones); Vitest (the inactive
+    card under «شاگردان من», its page and search, «شاگردان من» active only and its search, none
+    inactive, the profile's lines, amber, over, a deactivated member, a missing student; the day
+    page's names; the month's rows in order, the nine boxes and their colours, the member's seven;
+    the day boxes' colours and the pressed one); walked at 390 px and 1440 px, light and dark, over
+    `dev:site` with a mocked API (made-up students and visits)
   - **Decided by the developer** (1405/08/29), to write into BUSINESS_RULES.md §15 first:
     1. **«شاگردان غیرفعال (n)» is a card of its own on the trainer's home, right under «شاگردان
        من»**, opening its own page with its own search. «شاگردان من» lists the active students

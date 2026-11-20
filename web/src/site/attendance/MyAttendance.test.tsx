@@ -8,7 +8,7 @@ import { monthOf, monthRange, shiftMonth } from "./labels";
 
 /*
  * «حضور من» (BUSINESS_RULES.md §15 *The member's own attendance*, roadmap 15.7j): the member's own
- * month, read only, as their trainer sees it but without «خارج از سانس».
+ * month, read only, as their trainer sees it, its «روز دیگر» visits too since 15.7p.
  */
 
 const memberOnly = siteAccess();
@@ -69,8 +69,36 @@ const month = {
       state: "Absent",
       checkedInAt: null,
     },
+    {
+      // 15.7p: missed the 13:00 session, came at 19:30 that day.
+      ...visit,
+      date: "2026-11-05",
+      start: "13:00:00",
+      end: "14:00:00",
+      trainerName: null,
+      isVip: false,
+      state: "OutsideSession",
+      checkedInAt: "19:30:00",
+      checkedOutAt: "21:00:00",
+    },
   ],
-  totals: { early: 1, onTime: 1, late: 1, cameAfter: 0, absent: 1, leave: 0, cancelled: 0 },
+  totals: {
+    early: 1,
+    onTime: 1,
+    late: 1,
+    outsideSession: 1,
+    absent: 1,
+    leave: 0,
+    cancelled: 0,
+    otherDayVisits: 1,
+  },
+  // 15.7p (the developer): the member's own «روز دیگر» visits too.
+  otherDays: [
+    {
+      date: "2026-10-26",
+      visit: { checkedInAt: "18:00:00", checkedOutAt: null, autoCheckedOut: false },
+    },
+  ],
 };
 
 describe("the member's «حضور من»", () => {
@@ -95,8 +123,14 @@ describe("the member's «حضور من»", () => {
     });
     renderSite("/my-attendance", { access: memberOnly });
 
-    const sessions = within(await screen.findByRole("list", { name: "سانس‌های ماه" }));
-    const [onTime, early, late, absent] = sessions.getAllByRole("listitem");
+    const sessions = within(await screen.findByRole("list", { name: "حضور ماه" }));
+    const [onTime, otherDay, early, late, absent, outsideSession] =
+      sessions.getAllByRole("listitem");
+    // 15.7p: «روز دیگر» among the sessions, and «خارج از سانس» on the session they missed.
+    expect(otherDay).toHaveTextContent("روز دیگر");
+    expect(otherDay).toHaveTextContent("ورود ۱۸:۰۰ · داخل است");
+    expect(outsideSession).toHaveTextContent("خارج از سانس ۱۹:۳۰");
+    expect(outsideSession).toHaveTextContent("خروج ۲۱:۰۰");
     expect(onTime).toHaveTextContent("به‌موقع ۱۲:۵۰");
     expect(onTime).not.toHaveTextContent("دقیقه");
     expect(onTime).toHaveTextContent("با سارا احمدی");
@@ -112,12 +146,16 @@ describe("the member's «حضور من»", () => {
       "۱زودتر از موعد",
       "۱به‌موقع",
       "۱با تأخیر",
-      "۰بعد از سانس",
+      "۱خارج از سانس",
       "۱غایب",
+      "۱روز دیگر",
       "۰مرخصی",
       "۰لغو شد",
     ]);
-    expect(screen.queryByRole("list", { name: "خارج از سانس" })).not.toBeInTheDocument();
+    // 15.7p: the same eight boxes as the trainer's, four a row, coloured alike.
+    expect(screen.getByRole("list", { name: "جمع ماه" })).toHaveClass("grid-cols-4");
+    expect(totals.getByText("غایب").parentElement?.className).toContain("var(--destructive)");
+    expect(totals.getByText("روز دیگر").parentElement?.className).toContain("var(--other-day)");
     expect(screen.getByRole("heading", { name: "حضور من", level: 1 })).toBeInTheDocument();
 
     const thisMonth = monthRange(monthOf(gymToday()));
@@ -134,7 +172,16 @@ describe("the member's «حضور من»", () => {
         json(200, {
           ...month,
           sessions: [],
-          totals: { ...month.totals, early: 0, onTime: 0, late: 0, absent: 0 },
+          otherDays: [],
+          totals: {
+            ...month.totals,
+            early: 0,
+            onTime: 0,
+            late: 0,
+            outsideSession: 0,
+            absent: 0,
+            otherDayVisits: 0,
+          },
         }),
     });
     renderSite("/my-attendance", { access: memberOnly });
@@ -149,7 +196,7 @@ describe("the member's «حضور من»", () => {
       [`GET ${path}`]: () => json(200, month),
     });
     renderSite("/my-attendance", { access: memberOnly });
-    await screen.findByRole("list", { name: "سانس‌های ماه" });
+    await screen.findByRole("list", { name: "حضور ماه" });
 
     fireEvent.click(screen.getByRole("button", { name: "ماه قبل" }));
 

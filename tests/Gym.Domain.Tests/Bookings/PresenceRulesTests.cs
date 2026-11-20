@@ -92,13 +92,15 @@ public sealed class PresenceRulesTests
     [Theory]
     [InlineData(14, 30)]
     [InlineData(18, 0)]
-    public void Mark_CheckInAtOrAfterTheEnd_IsCameAfterNotAbsent(int hour, int minute)
+    public void Mark_CheckInAtOrAfterTheEnd_IsOutsideSessionNotAbsent(int hour, int minute)
     {
+        // 15.7p (the developer, 1405/08/29): came that day at another hour, so not absent.
         var mark = MarkToday(Evening, In(hour, minute));
 
-        mark.State.ShouldBe(SessionPresence.CameAfter);
+        mark.State.ShouldBe(SessionPresence.OutsideSession);
         mark.CheckedInAt.ShouldBe(new TimeOnly(hour, minute));
         (mark.MinutesEarly, mark.MinutesLate).ShouldBe((null, null));
+        mark.CameToTheSession.ShouldBeFalse();
     }
 
     [Fact]
@@ -130,12 +132,13 @@ public sealed class PresenceRulesTests
     [Theory]
     [InlineData(12, 0)]
     [InlineData(13, 0)]
-    public void Mark_EarlyCheckInLeftByTheStart_IsAbsent(int leftHour, int leftMinute)
+    public void Mark_EarlyCheckInLeftByTheStart_IsOutsideSession(int leftHour, int leftMinute)
     {
         var mark = MarkToday(Evening, In(11, 0, left: new TimeOnly(leftHour, leftMinute)));
 
-        // Came and went before the session: not in it, so absent; the visit is «خارج از سانس».
-        mark.State.ShouldBe(SessionPresence.Absent);
+        // Came and went before the session: not in it, but came that day (15.7p), so not absent.
+        mark.State.ShouldBe(SessionPresence.OutsideSession);
+        mark.CheckedInAt.ShouldBe(new TimeOnly(11, 0));
     }
 
     [Fact]
@@ -233,21 +236,37 @@ public sealed class PresenceRulesTests
     }
 
     [Fact]
-    public void Mark_CameAfter_CarriesTheLaterVisit()
+    public void Mark_VisitsBeforeAndAfterButNoneForTheSession_IsOutsideSessionWithTheLaterOne()
     {
         var later = In(16, 0) with { AutoClosed = true };
 
-        var mark = MarkToday(Evening, later);
+        var mark = MarkToday(Evening, In(9, 0, left: new TimeOnly(10, 0)), later);
 
-        mark.State.ShouldBe(SessionPresence.CameAfter);
+        mark.State.ShouldBe(SessionPresence.OutsideSession);
         mark.Visit.ShouldBe(later);
+    }
+
+    [Fact]
+    public void Mark_TwoVisitsBeforeTheSession_ShowsTheLastOne()
+    {
+        var mark = MarkToday(Evening, In(8, 0, left: new TimeOnly(9, 0)), In(10, 0, left: new TimeOnly(11, 0)));
+
+        (mark.State, mark.CheckedInAt).ShouldBe((SessionPresence.OutsideSession, new TimeOnly(10, 0)));
+    }
+
+    [Fact]
+    public void MarkOnLeave_CheckInAtAnotherHour_StaysLeave()
+    {
+        var mark = PresenceRules.MarkOnLeave(Today, Start, End, [In(18, 0)], Today, Evening);
+
+        mark.State.ShouldBe(SessionPresence.Leave);
     }
 
     [Theory]
     [InlineData(SessionPresence.Early, true)]
     [InlineData(SessionPresence.OnTime, true)]
     [InlineData(SessionPresence.Late, true)]
-    [InlineData(SessionPresence.CameAfter, false)]
+    [InlineData(SessionPresence.OutsideSession, false)]
     [InlineData(SessionPresence.Absent, false)]
     [InlineData(SessionPresence.NotYet, false)]
     [InlineData(SessionPresence.Leave, false)]
@@ -276,7 +295,7 @@ public sealed class PresenceRulesTests
     [Fact]
     public void OutsideSessions_CheckInAfterTheSessionEnded_IsListed()
     {
-        // Shown beside the missed session as «بعد از سانس آمد» too: it was outside it.
+        // The day page lists it; the missed session is «خارج از سانس» (15.7p).
         PresenceRules.OutsideSessions([In(14, 30)], [(Start, End)]).ShouldHaveSingleItem().CheckedInAt.ShouldBe(new TimeOnly(14, 30));
     }
 }

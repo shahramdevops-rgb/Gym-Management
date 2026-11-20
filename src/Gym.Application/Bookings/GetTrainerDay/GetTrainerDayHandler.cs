@@ -151,7 +151,7 @@ public sealed class GetTrainerDayHandler(IAppDbContext db, IGymCalendar calendar
             states.Count,
             states.Count(state => state.IsPresent()),
             states.Count(state => state == SessionPresence.Late),
-            states.Count(state => state == SessionPresence.CameAfter),
+            states.Count(state => state == SessionPresence.OutsideSession),
             states.Count(state => state == SessionPresence.Absent));
     }
 }

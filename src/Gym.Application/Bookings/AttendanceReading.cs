@@ -21,8 +21,9 @@ internal static class AttendanceReading
     /// The trainer whose sessions show no name: the trainer asking, or the member's trainer now;
     /// <c>null</c> to name every session's trainer.
     /// </param>
-    /// <param name="outsideSince">
-    /// The first day «خارج از سانس» lists visits from (the trainer's, 15.7d); <c>null</c> lists none.
+    /// <param name="otherDaysSince">
+    /// The first day «روز دیگر» lists visits from: for the trainer, the day the
+    /// member became their student (15.7d); for the member, the range's first day (15.7p).
     /// </param>
     public static async Task<AttendanceRead> ReadAsync(
         IAppDbContext db,
@@ -31,7 +32,7 @@ internal static class AttendanceReading
         DateOnly from,
         DateOnly to,
         Guid? viewingTrainerId,
-        DateOnly? outsideSince,
+        DateOnly otherDaysSince,
         CancellationToken cancellationToken)
     {
         var today = calendar.Today();
@@ -39,7 +40,7 @@ internal static class AttendanceReading
         var last = to < today ? to : today;
         if (last < from)
         {
-            return new AttendanceRead([], new AttendanceTotals(0, 0, 0, 0, 0, 0, 0), []);
+            return new AttendanceRead([], new AttendanceTotals(0, 0, 0, 0, 0, 0, 0, 0), []);
         }
 
         var places = await BookedPlaces.OfMemberAsync(db, memberId, from, last, cancellationToken);
@@ -89,55 +90,57 @@ internal static class AttendanceReading
 
                 return Item(place.Date, place.Start, place.End, place.TrainerId, session?.IsVip ?? false, mark);
             })
-            .Concat(leaves.Select(leave => Item(
-                leave.Date,
-                leave.Start,
-                leave.End,
-                leave.TrainerId,
-                SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End)?.IsVip ?? false,
-                SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End) is null
+            .Concat(leaves.Select(leave =>
+            {
+                var session = SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End);
+                var mark = session is null
                     ? PresenceMark.Without(SessionPresence.Leave)
-                    : PresenceRules.MarkOnLeave(leave.Date, leave.Start, leave.End, VisitsOn(leave.Date), today, now))))
+                    : PresenceRules.MarkOnLeave(leave.Date, leave.Start, leave.End, VisitsOn(leave.Date), today, now);
+
+                return Item(leave.Date, leave.Start, leave.End, leave.TrainerId, session?.IsVip ?? false, mark);
+            }))
             .OrderBy(item => item.Date).ThenBy(item => item.Start).ThenBy(item => item.End)
             .ToList();
 
-        int Count(SessionPresence state) => items.Count(item => item.State == state);
-
-        var totals = new AttendanceTotals(
-            Count(SessionPresence.Early),
-            Count(SessionPresence.OnTime),
-            Count(SessionPresence.Late),
-            Count(SessionPresence.CameAfter),
-            Count(SessionPresence.Absent),
-            Count(SessionPresence.Leave),
-            Count(SessionPresence.Cancelled));
-
-        if (outsideSince is not { } since)
-        {
-            return new AttendanceRead(items, totals, []);
-        }
-
-        // «خارج از سانس» (15.7d): the check-ins that count for none of the student's sessions that
-        // day, from the given day on; a session they had leave from and came to anyway is theirs.
-        var firstDay = since > from ? since : from;
-        var outside = visits
+        // «روز دیگر» (15.7p): the check-ins on a day with no session to come to, from the given day
+        // on. A day with a session still in the timetable has none: its sessions tell every visit
+        // (early, on time, late or «خارج از سانس»). A day whose only session was cancelled, or that
+        // the student had leave from, is such a day; a leave session they came to anyway keeps its
+        // check-in.
+        var firstDay = otherDaysSince > from ? otherDaysSince : from;
+        var otherDays = visits
             .Where(entry => entry.Key.Date >= firstDay)
+            .Where(entry => !places.Any(place =>
+                place.Date == entry.Key.Date && SessionAt(place.TrainerId, place.Date, place.Start, place.End) is not null))
             .OrderBy(entry => entry.Key.Date)
             .SelectMany(entry =>
             {
-                var theirs = places
-                    .Where(place => place.Date == entry.Key.Date && SessionAt(place.TrainerId, place.Date, place.Start, place.End) is not null)
-                    .Select(place => (place.Start, place.End))
-                    .Concat(leaves
-                        .Where(leave => leave.Date == entry.Key.Date && SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End) is not null)
-                        .Select(leave => (leave.Start, leave.End)));
+                var date = entry.Key.Date;
+                var leaveSessions = leaves
+                    .Where(leave => leave.Date == date && SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End) is not null)
+                    .Select(leave => (leave.Start, leave.End));
 
-                return PresenceRules.OutsideSessions(entry.Value, theirs)
-                    .Select(visit => new OutsideVisit(entry.Key.Date, VisitTimes.Of(visit)));
+                return PresenceRules.OutsideSessions(entry.Value, leaveSessions)
+                    .Select(visit => new OtherDayVisit(date, VisitTimes.Of(visit)));
             })
             .ToList();
 
-        return new AttendanceRead(items, totals, outside);
+        return new AttendanceRead(items, Totals(items, otherDays.Count), otherDays);
+    }
+
+    private static AttendanceTotals Totals(List<AttendanceItem> items, int otherDayVisits)
+    {
+        int Count(SessionPresence state) => items.Count(item => item.State == state);
+
+        return new AttendanceTotals(
+            Count(SessionPresence.Early),
+            Count(SessionPresence.OnTime),
+            Count(SessionPresence.Late),
+            Count(SessionPresence.OutsideSession),
+            Count(SessionPresence.Absent),
+            Count(SessionPresence.Leave),
+            Count(SessionPresence.Cancelled),
+            otherDayVisits);
     }
 
     /// <summary>Whether <paramref name="from"/> to <paramref name="to"/> is a range a screen may ask for.</summary>
@@ -146,4 +149,4 @@ internal static class AttendanceReading
 }
 
 /// <summary>What <see cref="AttendanceReading.ReadAsync"/> reads.</summary>
-internal sealed record AttendanceRead(IReadOnlyList<AttendanceItem> Items, AttendanceTotals Totals, IReadOnlyList<OutsideVisit> Outside);
+internal sealed record AttendanceRead(IReadOnlyList<AttendanceItem> Items, AttendanceTotals Totals, IReadOnlyList<OtherDayVisit> OtherDays);

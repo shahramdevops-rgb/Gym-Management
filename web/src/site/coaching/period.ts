@@ -49,6 +49,23 @@ export function isActiveStudent(endsOn: string | null | undefined, today: string
   return periodState(endsOn, today).kind !== "over";
 }
 
+/** Which students a list shows (BUSINESS_RULES.md §15 *«شاگردان من» in two parts*, 15.7p). */
+export type StudentPart = "active" | "inactive";
+
+/**
+ * The students of one part on `today`. Here rather than beside the list pages, so the home's cards
+ * (`TrainerArea`) do not pull the lazy pages into the first download (15.7c).
+ */
+export function studentsOf<T extends { periodEndsOn?: string | null }>(
+  students: readonly T[],
+  part: StudentPart,
+  today: string,
+): T[] {
+  return students.filter(
+    (student) => isActiveStudent(student.periodEndsOn, today) === (part === "active"),
+  );
+}
+
 /** «دوره تا ۱۹ آذر ۱۴۰۵، ۱۲ روز مانده», or that it is over, or not given yet. */
 export function periodLine(state: PeriodState): string {
   switch (state.kind) {
@@ -58,6 +75,21 @@ export function periodLine(state: PeriodState): string {
       return `دورهٔ مربی‌گری ${formatDate(state.endsOn)} تمام شد`;
     case "running":
       return `دورهٔ مربی‌گری تا ${formatDate(state.endsOn)}، ${daysLeftText(state.daysLeft)}`;
+  }
+}
+
+/**
+ * The period on a student's profile (15.7p), beside its name «دورهٔ مربی‌گری»: «تا ۱۹ آذر ۱۴۰۵،
+ * ۱۲ روز مانده», «۱۹ آذر ۱۴۰۵ تمام شد» or «مشخص نشده است».
+ */
+export function periodValue(state: PeriodState): string {
+  switch (state.kind) {
+    case "unset":
+      return "مشخص نشده است";
+    case "over":
+      return `${formatDate(state.endsOn)} تمام شد`;
+    case "running":
+      return `تا ${formatDate(state.endsOn)}، ${daysLeftText(state.daysLeft)}`;
   }
 }
 

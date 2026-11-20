@@ -18,8 +18,9 @@ import { monthOf, monthRange } from "./labels";
 /**
  * «حضور من» (BUSINESS_RULES.md §15 *The member's own attendance*, roadmap 15.7j): the member's own
  * sessions of one Jalali month up to today, each with its state as their trainer sees it, and the
- * month's totals. Read only, from «سانس‌های من». The visits outside the sessions are the trainer's
- * alone. Only a member reaches it.
+ * month's totals. Read only, from «سانس‌های من». Since 15.7p, like the trainer's: «خارج از سانس»
+ * on a session, every «روز دیگر» visit of the month, and the same eight boxes. Only a member
+ * reaches it.
  */
 export function MyAttendancePage() {
   const me = useSiteMe();
@@ -55,6 +56,7 @@ export function MyAttendancePage() {
         <AttendanceMonth
           totals={attendance.data.totals}
           sessions={attendance.data.sessions}
+          otherDays={attendance.data.otherDays}
           empty="در این ماه سانسی نداشته‌اید."
         />
       )}

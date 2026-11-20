@@ -24,8 +24,8 @@ function minutesOf(value: Minutes): number | null {
 }
 
 /**
- * A student's state in one session with the check-in that counted: «به‌موقع ۱۳:۰۰», «بعد از سانس
- * آمد ۱۶:۰۰». Under a check-in, how early or late it was from the start («۳۰ دقیقه زودتر از موعد»,
+ * A student's state in one session with the check-in that counted: «به‌موقع ۱۳:۰۰», «با تأخیر
+ * ۱۳:۲۵». Under a check-in, how early or late it was from the start («۳۰ دقیقه زودتر از موعد»,
  * 15.7m; «۲۵ دقیقه تأخیر») and its check-out («خروج ۱۴:۴۰», «داخل است», «خروج ثبت نشد») (15.7d), and
  * «مرخصی داشت» for a student who had leave and came anyway (15.7i). May wrap, so it never runs out
  * of a narrow box.

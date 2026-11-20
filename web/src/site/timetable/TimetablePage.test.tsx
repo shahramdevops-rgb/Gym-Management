@@ -715,10 +715,12 @@ describe("students in the trainer's sessions", () => {
     const dialog = within(await screen.findByRole("dialog"));
     const first = within(await dialog.findByRole("region", { name: "۱۳:۰۰ تا ۱۴:۰۰" }));
     expect(first.getByRole("heading")).toHaveTextContent("۱ از ۸ نفر");
-    expect(first.getByRole("link", { name: "۰۹۱۲ ۱۱۱ ۲۲۳۳" })).toHaveAttribute(
+    // 15.7p: a call icon in place of the number.
+    expect(first.getByRole("link", { name: "تماس با سارا احمدی" })).toHaveAttribute(
       "href",
       "tel:+989121112233",
     );
+    expect(first.queryByText("۰۹۱۲ ۱۱۱ ۲۲۳۳")).not.toBeInTheDocument();
     const removed = within(dialog.getByRole("region", { name: "۱۶:۰۰ تا ۱۷:۰۰" }));
     expect(removed.getByText("لغو شد")).toBeInTheDocument();
     expect(removed.getByText("مینا رضایی")).toBeInTheDocument();

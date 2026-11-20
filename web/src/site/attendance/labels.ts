@@ -9,32 +9,48 @@ export const presenceLabels: Record<SessionPresence, string> = {
   Early: "زودتر از موعد",
   OnTime: "به‌موقع",
   Late: "با تأخیر",
+  // Came that day at another hour: neither present nor absent (15.7p, the developer, in place of
+  // 15.7d's «بعد از سانس آمد»).
+  OutsideSession: "خارج از سانس",
+  // Did not come that day at all.
   Absent: "غایب",
   NotYet: "هنوز نیامده",
   Leave: "مرخصی",
   Cancelled: "لغو شد",
-  // Came to the gym after the session ended: they came, so not absent (15.7d, the developer).
-  CameAfter: "بعد از سانس آمد",
 };
 
 export type PresenceVariant =
-  "success" | "early" | "warning" | "destructive" | "outline" | "secondary" | "default";
+  | "success"
+  | "early"
+  | "warning"
+  | "destructive"
+  | "outline"
+  | "secondary"
+  | "outsideSession"
+  | "otherDay";
 
 /**
  * Green for on time, turquoise for early (its own colour, asked by the developer with 15.7m), amber
- * for late, blue for came after the session, red only for truly absent; a leave or a cancelled
- * session is no one's fault.
+ * for late, dark blue for «خارج از سانس» (15.7p), red for absent; a leave or a cancelled session is
+ * no one's fault.
  */
 export const presenceVariants: Record<SessionPresence, PresenceVariant> = {
   Early: "early",
   OnTime: "success",
   Late: "warning",
+  OutsideSession: "outsideSession",
   Absent: "destructive",
   NotYet: "outline",
   Leave: "secondary",
   Cancelled: "outline",
-  CameAfter: "default",
 };
+
+/**
+ * A visit on a day the student had no session to come to (BUSINESS_RULES.md §15 *The student's
+ * profile and every visit in the month*, 15.7p), in purple (the developer, 1405/08/29).
+ */
+export const otherDayLabel = "روز دیگر";
+export const otherDayVariant: PresenceVariant = "otherDay";
 
 /** The API's `HH:mm:ss` as «۱۳:۱۰». */
 export function formatClock(time: string): string {

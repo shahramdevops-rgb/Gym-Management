@@ -30,8 +30,11 @@ public static class PresenceRules
 
     /// <summary>
     /// The mark of a student's place in a session that is still in the timetable: early, on time,
-    /// late, came after the session, absent, or not yet (no check-in, and the session has not ended).
-    /// An early or late check-in carries how many minutes from the start (15.7d, 15.7m).
+    /// late, outside the session, absent, or not yet (no check-in, and the session has not ended).
+    /// An early or late check-in carries how many minutes from the start (15.7d, 15.7m). Once the
+    /// session has ended with no check-in for it, a check-in that day at another hour makes it
+    /// «خارج از سانس», not absent; absent is a day they did not come at all (decided by the
+    /// developer, 1405/08/29, task 15.7p, in place of 1405/08/19's «بعد از سانس آمد»).
     /// </summary>
     /// <param name="date">The session's date.</param>
     /// <param name="start">The session's start, in the gym's time zone.</param>
@@ -78,21 +81,24 @@ public static class PresenceRules
             return PresenceMark.Without(SessionPresence.NotYet);
         }
 
-        var after = all
+        // Came that day at another hour (proposed by Claude: the time shown is the first check-in
+        // after the end, or else the last one before the start).
+        var other = all
             .Where(visit => Minutes(visit.CheckedInAt) >= Minutes(end))
             .OrderBy(visit => visit.CheckedInAt)
-            .FirstOrDefault();
+            .FirstOrDefault()
+            ?? all.OrderByDescending(visit => visit.CheckedInAt).FirstOrDefault();
 
-        // Came to the gym after the session ended: they came, so not absent (decided by the developer, 1405/08/19).
-        return after is null
+        return other is null
             ? PresenceMark.Without(SessionPresence.Absent)
-            : new PresenceMark(SessionPresence.CameAfter, after);
+            : new PresenceMark(SessionPresence.OutsideSession, other);
     }
 
     /// <summary>
     /// The mark of a date the student had leave from (task 15.7i): «مرخصی», unless they came to the
     /// session anyway, which counts as usual, early, on time or late, marked «مرخصی داشت» (decided
-    /// by the developer, 1405/08/19). A check-in only after the session leaves it «مرخصی».
+    /// by the developer, 1405/08/19). A check-in at another hour leaves it «مرخصی», never «خارج از
+    /// سانس» (15.7p): with leave there was no session to come to.
     /// </summary>
     public static PresenceMark MarkOnLeave(
         DateOnly date,
@@ -111,9 +117,9 @@ public static class PresenceRules
 
     /// <summary>
     /// The check-ins that count for none of <paramref name="sessions"/>, earliest first: the visits
-    /// outside the student's sessions that day («خارج از سانس», task 15.7d). A visit after a session
-    /// the student missed is one of them, as well as a visit on a date they left or whose session
-    /// was cancelled.
+    /// outside the student's sessions that day (task 15.7d), the day page's «آمدند، بدون سانس». A
+    /// visit at another hour of a session they missed is one of them, as well as a visit on a date
+    /// they left or whose session was cancelled.
     /// </summary>
     /// <param name="visits">The student's check-ins of one date, not cancelled.</param>
     /// <param name="sessions">The sessions the student was in that date: not left, not cancelled.</param>
@@ -174,7 +180,7 @@ public sealed record DayVisit(TimeOnly CheckedInAt, TimeOnly? LeftAt)
 }
 
 /// <summary>A student's mark in one session.</summary>
-/// <param name="Visit">The check-in that counted; for a student who came after the session, that later one.</param>
+/// <param name="Visit">The check-in that counted; for «خارج از سانس», the one at another hour that day.</param>
 /// <param name="MinutesEarly">«زودتر از موعد» by this many minutes from the start (tasks 15.7d, 15.7m); only for <see cref="SessionPresence.Early"/>.</param>
 /// <param name="MinutesLate">Late by this many minutes from the start (task 15.7d); only for <see cref="SessionPresence.Late"/>.</param>
 public sealed record PresenceMark(SessionPresence State, DayVisit? Visit, int? MinutesEarly = null, int? MinutesLate = null)
@@ -207,7 +213,7 @@ public enum SessionPresence
     /// <summary>Checked in later, before the session ended.</summary>
     Late = 3,
 
-    /// <summary>The session ended with no check-in that day for it or after it: truly absent.</summary>
+    /// <summary>The session ended and the student did not check in at all that day: truly absent.</summary>
     Absent = 4,
 
     /// <summary>The student had leave from that date (an accepted request, or «نمی‌آیم» before 15.7i), shown «مرخصی»: not absent.</summary>
@@ -216,17 +222,21 @@ public enum SessionPresence
     /// <summary>The trainer removed the session, or moved its times, after the student was put in it («لغو شد»): not absent.</summary>
     Cancelled = 6,
 
-    /// <summary>
-    /// No check-in for the session, but one after it ended («بعد از سانس آمد»): they came, so not
-    /// absent (decided by the developer, 1405/08/19, in place of absent with that note).
-    /// </summary>
-    CameAfter = 7,
+    // 7 was CameAfter, «بعد از سانس آمد» (1405/08/19, a check-in after the end only), replaced by
+    // OutsideSession with 15.7p. Never stored, so no row holds it; the number is not reused.
 
     /// <summary>
     /// Checked in more than <see cref="PresenceRules.OnTimeBeforeMinutes"/> before the start
     /// («زودتر از موعد», decided by the developer, 1405/08/24, task 15.7m): present, as on time is.
     /// </summary>
     Early = 8,
+
+    /// <summary>
+    /// The session ended with no check-in for it, but the student checked in that day at another
+    /// hour, before or after it («خارج از سانس», decided by the developer, 1405/08/29, task 15.7p):
+    /// neither present nor absent.
+    /// </summary>
+    OutsideSession = 9,
 }
 
 /// <summary>Readings of <see cref="SessionPresence"/> shared by the trainer's and the member's pages.</summary>
@@ -234,7 +244,7 @@ public static class SessionPresenceExtensions
 {
     /// <summary>
     /// Early, on time or late: the student came to the session, so counted as present (§15
-    /// <i>Early, on time, late, absent</i>). Came after the session is not.
+    /// <i>Early, on time, late, absent</i>).
     /// </summary>
     public static bool IsPresent(this SessionPresence state) =>
         state is SessionPresence.Early or SessionPresence.OnTime or SessionPresence.Late;

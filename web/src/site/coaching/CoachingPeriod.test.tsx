@@ -149,7 +149,14 @@ describe("the coaching period", () => {
     expect(
       await screen.findByText("دورهٔ الف قدیمی و ب دو روز رسیدگی می‌خواهد."),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("link", { name: "شاگردان من (۳)" }));
+    fireEvent.click(screen.getByRole("link", { name: "شاگردان غیرفعال (۱)" }));
+
+    // 15.7p: the inactive one on a page of their own, with their mark.
+    expect(
+      within(await screen.findByRole("list", { name: "شاگردان غیرفعال" })).getByRole("listitem"),
+    ).toHaveTextContent("دوره تمام شد");
+    fireEvent.click(screen.getByRole("link", { name: "بازگشت" }));
+    fireEvent.click(await screen.findByRole("link", { name: "شاگردان من (۳)" }));
 
     const rows = within(await screen.findByRole("list", { name: "شاگردان من" })).getAllByRole(
       "listitem",
@@ -159,11 +166,6 @@ describe("the coaching period", () => {
     expect(rows[1]).toHaveTextContent("۲ روز");
     expect(rows[1]).not.toHaveTextContent("مانده");
     expect(rows[2]).not.toHaveTextContent(/روز|دوره/);
-
-    fireEvent.click(screen.getByRole("button", { name: "غیرفعال (۱)" }));
-    expect(
-      within(screen.getByRole("list", { name: "شاگردان غیرفعال" })).getByRole("listitem"),
-    ).toHaveTextContent("دوره تمام شد");
   });
 
   it.each([
@@ -201,9 +203,11 @@ describe("the coaching period", () => {
     },
   );
 
-  it("Students_PeriodOver_InTheClosedInactivePartThatOpensOnATap", async () => {
+  // ---- 15.7p: «شاگردان غیرفعال» a card and a page of its own ----
+
+  function fourStudents() {
     const now = gymToday();
-    mockApi({
+    return mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/coaching/students": () =>
         json(200, {
@@ -218,48 +222,48 @@ describe("the coaching period", () => {
           ],
         }),
     });
+  }
+
+  it("InactiveStudents_PeriodOver_CardRightUnderMyStudentsOpensTheirPage", async () => {
+    fourStudents();
+    renderSite("/", { access: siteAccess(trainerOnly) });
+
+    const mine = await screen.findByRole("link", { name: "شاگردان من (۲)" });
+    const inactiveCard = screen.getByRole("link", { name: "شاگردان غیرفعال (۲)" });
+    expect(mine.nextElementSibling).toBe(inactiveCard);
+
+    fireEvent.click(inactiveCard);
+
+    expect(
+      await screen.findByRole("heading", { name: "شاگردان غیرفعال (۲)", level: 1 }),
+    ).toBeInTheDocument();
+    const inactive = within(screen.getByRole("list", { name: "شاگردان غیرفعال" }));
+    expect(inactive.getAllByRole("listitem")).toHaveLength(2);
+    expect(inactive.getByText("مینا تمام")).toBeInTheDocument();
+    // Still the trainer's students: their attendance and program open as the active ones' do.
+    expect(inactive.getByRole("link", { name: "برنامهٔ ثابت رضا تمام" })).toBeInTheDocument();
+    expect(inactive.getByRole("link", { name: "حضور رضا تمام" })).toBeInTheDocument();
+  });
+
+  it("Students_SomePeriodsOver_ListsOnlyTheActiveOnesWithNoClosedPart", async () => {
+    fourStudents();
     renderSite("/students", { access: siteAccess(trainerOnly) });
 
     // The title counts the active ones, as the home's card does.
     expect(
       await screen.findByRole("heading", { name: "شاگردان من (۲)", level: 1 }),
     ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("list", { name: "شاگردان من" })).getAllByRole("listitem"),
-    ).toHaveLength(2);
-
-    const part = screen.getByRole("button", { name: "غیرفعال (۲)" });
-    expect(part).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("list", { name: "شاگردان غیرفعال" })).not.toBeInTheDocument();
-
-    fireEvent.click(part);
-
-    expect(part).toHaveAttribute("aria-expanded", "true");
-    const inactive = within(screen.getByRole("list", { name: "شاگردان غیرفعال" }));
-    expect(inactive.getAllByRole("listitem")).toHaveLength(2);
-    expect(inactive.getByText("مینا تمام")).toBeInTheDocument();
-    // Still the trainer's students: their attendance and program open as the active ones' do.
-    expect(inactive.getByRole("link", { name: "برنامهٔ ثابت رضا تمام" })).toBeInTheDocument();
-
-    fireEvent.click(part);
-    expect(screen.queryByRole("list", { name: "شاگردان غیرفعال" })).not.toBeInTheDocument();
+    const rows = within(screen.getByRole("list", { name: "شاگردان من" })).getAllByRole("listitem");
+    expect(rows.map((row) => row.querySelector("a")?.textContent)).toEqual([
+      "سارا فعال",
+      "لیلا روز آخر",
+    ]);
+    expect(screen.queryByRole("button", { name: /^غیرفعال/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("مینا تمام")).not.toBeInTheDocument();
   });
 
-  it("Students_SearchFindsAnInactiveStudent_ShowsThemWithoutATap", async () => {
-    const now = gymToday();
-    mockApi({
-      "GET /api/site/me": () => json(200, trainerOnly),
-      "GET /api/site/coaching/students": () =>
-        json(200, {
-          requests: [],
-          periodSoonDays: 7,
-          students: [
-            studentRow({ fullName: "سارا فعال", periodEndsOn: addDays(now, 20) }),
-            studentRow({ fullName: "مینا تمام", periodEndsOn: addDays(now, -3) }),
-            studentRow({ fullName: "رضا تمام", periodEndsOn: addDays(now, -40) }),
-          ],
-        }),
-    });
+  it("Students_SearchForAnInactiveOne_FindsNoOneThere", async () => {
+    fourStudents();
     renderSite("/students", { access: siteAccess(trainerOnly) });
     await screen.findByRole("list", { name: "شاگردان من" });
 
@@ -267,18 +271,25 @@ describe("the coaching period", () => {
       target: { value: "مینا" },
     });
 
-    expect(screen.queryByRole("list", { name: "شاگردان من" })).not.toBeInTheDocument();
-    expect(screen.queryByText("شاگرد فعالی ندارید.")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "غیرفعال (۱)" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    const inactive = within(screen.getByRole("list", { name: "شاگردان غیرفعال" }));
-    expect(inactive.getAllByRole("listitem")).toHaveLength(1);
-    expect(inactive.getByText("مینا تمام")).toBeInTheDocument();
+    expect(screen.getByText("شاگردی با این نام یا شماره پیدا نشد.")).toBeInTheDocument();
   });
 
-  it("Students_EveryPeriodOver_SaysNoActiveStudentAboveTheClosedPart", async () => {
+  it("InactiveStudents_Search_FindsAmongThemOnly", async () => {
+    fourStudents();
+    renderSite("/students/inactive", { access: siteAccess(trainerOnly) });
+    await screen.findByRole("list", { name: "شاگردان غیرفعال" });
+    const search = screen.getByRole("searchbox", { name: "جست‌وجوی شاگرد" });
+
+    fireEvent.change(search, { target: { value: "مینا" } });
+    const found = within(screen.getByRole("list", { name: "شاگردان غیرفعال" }));
+    expect(found.getAllByRole("listitem")).toHaveLength(1);
+    expect(found.getByText("مینا تمام")).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "سارا" } });
+    expect(screen.getByText("شاگردی با این نام یا شماره پیدا نشد.")).toBeInTheDocument();
+  });
+
+  it("Students_EveryPeriodOver_SaysNoActiveStudent", async () => {
     const now = gymToday();
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
@@ -292,11 +303,44 @@ describe("the coaching period", () => {
     renderSite("/", { access: siteAccess(trainerOnly) });
 
     expect(await screen.findByRole("link", { name: "شاگردان من (۰)" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "شاگردان غیرفعال (۱)" })).toBeInTheDocument();
     expect(screen.queryByText(/رسیدگی می‌خواهد/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("link", { name: "شاگردان من (۰)" }));
 
     expect(await screen.findByText("شاگرد فعالی ندارید.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "غیرفعال (۱)" })).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+  });
+
+  it("InactiveStudents_NoneInactive_NoCardAndThePageSaysSo", async () => {
+    const now = gymToday();
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/coaching/students": () =>
+        json(200, {
+          requests: [],
+          periodSoonDays: 7,
+          students: [studentRow({ fullName: "سارا فعال", periodEndsOn: addDays(now, 20) })],
+        }),
+    });
+    renderSite("/", { access: siteAccess(trainerOnly) });
+
+    expect(await screen.findByRole("link", { name: "شاگردان من (۱)" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^شاگردان غیرفعال/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("link", { name: "شاگردان من (۱)" }));
+    await screen.findByRole("list", { name: "شاگردان من" });
+  });
+
+  it("InactiveStudents_OpenedWithNone_SaysSo", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/coaching/students": () =>
+        json(200, { requests: [], periodSoonDays: 7, students: [] }),
+    });
+    renderSite("/students/inactive", { access: siteAccess(trainerOnly) });
+
+    expect(await screen.findByText("شاگرد غیرفعالی ندارید.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "شاگردان غیرفعال (۰)", level: 1 })).toBeVisible();
   });
 
   it("MyTrainer_WithAPeriod_ShowsItsLastDayAndTheDaysLeft", async () => {

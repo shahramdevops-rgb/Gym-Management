@@ -2765,6 +2765,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     A deactivated member (§2) stays in the part their period puts them in, with the «غیرفعال» of
     their membership beside the name as before. Since 15.7n, «ending within *N* days» is the SMS
     settings' *N*, sent with the list (`periodSoonDays`), in place of the 3 days of 15.7h.
+  - **Since 15.7p the inactive ones have a card and a page of their own**, «شاگردان غیرفعال (n)»
+    (*The student's profile and every visit in the month* below), in place of the closed part; the
+    page «شاگردان من» lists and searches the active ones only.
 
 ### The member's own records (15.5)
 - **The member sees in the app everything the panel's profile holds about them, except the SMS
@@ -2948,11 +2951,18 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     came early and stayed). Before 15 minutes ahead of the start is «زودتر از موعد», from then to
     5 minutes after the start on time, later and before the end late, as above (1405/08/24). Since
     nothing is stored, the earlier days show by the same rule too (*decided by the developer*).
-  - **A check-in after the session ended** is **«بعد از سانس آمد», not absent** (*decided by the
-    developer*, 1405/08/19: "absent is someone who is truly absent; someone who came very late still
-    came"; in place of 15.7's absent with «بعد از سانس آمد» beside it). It shows the check-in time,
-    has its own count (*More for the trainer* below), and is not in «غایبان امروز».
-  - **Not absent**: a session the student came to after it ended (above), a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
+  - **Came that day, but not to the session: «خارج از سانس»** (*decided by the developer*,
+    1405/08/29, with 15.7p, in place of 1405/08/19's «بعد از سانس آمد», which counted only a
+    check-in after the end): the session ended, no check-in counted for it, and the student checked
+    in that day at another hour, before it or after it. Neither early, on time nor late, and **not
+    absent**: not in «غایبان امروز». It shows that check-in's time, the first one after the end, or
+    else the last one before the start (*proposed by Claude*). In dark blue.
+  - **Absent («غایب») only when the student did not come that day at all** (*decided by the
+    developer*, 1405/08/29). A session not ended yet shows «هنوز نیامده».
+  - **On a day with a session, a student who came is always in one of four**: «زودتر از موعد»,
+    «به‌موقع», «با تأخیر» or «خارج از سانس» (*the developer*). A second check-in on a day they came
+    to their session shows nowhere else in their month (*proposed by Claude, accepted*).
+  - **Not absent**: a session the student came to at another hour that day (above), a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
     removed or whose times changed after the student was put in it (shown «لغو شد»), and a session
     not yet ended with no check-in (shown «هنوز نیامده» until it ends). A date the student moved to
     counts at its new session, the old one is not theirs any more.
@@ -2988,20 +2998,21 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **Any earlier day**: the day page (from «سانس‌های امروز», as before) moves back a day at a time
     or to a date picked, with no limit; a day after today does not open, since it has no
     attendance. Only today's refreshes every minute. *Proposed by Claude.*
-  - **Counts: students, present, late, came after, absent**, at the top of the day page and in a
-    card «امروز» on the trainer's home: **both places for now**, the developer will say which to
-    remove. Each student's place in a session counts once; present is everyone who came to the
-    session (late and early included), late is those of them who came late; «بعد از سانس» has a box
-    of its own, neither present nor absent (*decided by the developer*, 1405/08/19), as in the
-    month's totals; «مرخصی» and «لغو شد» are in none, and «هنوز نیامده» only among the students.
+  - **Counts: students, present, late, outside the session, absent**, at the top of the day page
+    and in a card «امروز» on the trainer's home: **both places for now**, the developer will say
+    which to remove. Each student's place in a session counts once; present is everyone who came to
+    the session (late and early included), late is those of them who came late; «خارج از سانس»
+    (since 15.7p, in place of 1405/08/19's «بعد از سانس») has a box of its own, neither present nor
+    absent; «مرخصی» and «لغو شد» are in none, and «هنوز نیامده» only among the students.
     *Proposed by Claude.*
-  - **Visits outside the sessions («خارج از سانس»)**: a check-in of the student that counts for none
-    of their sessions that day, with its date, check-in and check-out time. In the student's month
-    as a list of its own, and on the day page as «آمدند، بدون سانس» for the trainer's students that
-    day. *Proposed by Claude.* *Proposed by Claude while building, to confirm:* only visits from the
-    day the student became this trainer's student (the trainer sees the earlier trainers' sessions,
-    not the member's gym visits before them); a visit already shown as «بعد از سانس آمد» is in the
-    list too, since it was outside the session.
+  - **Visits outside the sessions**: a check-in of the student that counts for none of their
+    sessions that day, with its date, check-in and check-out time. On the day page as «آمدند، بدون
+    سانس» for the trainer's students that day, a visit at another hour of a «خارج از سانس» session
+    among them. In the student's month since 15.7p only the visits on a day with no session to come
+    to, «روز دیگر» (*The student's profile and every visit in the month* below); a visit on a day
+    with a session is told by that session's state. *Proposed by Claude.* *Proposed by Claude while
+    building, to confirm:* only visits from the day the student became this trainer's student (the
+    trainer sees the earlier trainers' sessions, not the member's gym visits before them).
   - **Each count opens its students** (*asked by the developer*, 1405/08/19, 15.7f): a box of the
     home's «امروز» opens the day page on it; on the day page a box shows only its students, pressed
     again everyone. «شاگردان» means the students it counts, so «مرخصی» and «لغو شد» are left out.
@@ -3069,13 +3080,55 @@ marked *proposed* were Claude's, accepted with the plan.
 *Asked with 15.7a and kept for later* (the developer, 1405/08/13); *built* 1405/08/19, Claude's
 three proposals accepted as offered.
 - **The member sees their own attendance by Jalali month**, «حضور من», from «سانس‌های من»: each of
-  their sessions up to today with its state, exactly as their trainer sees it (on time, late, came
-  after, absent, leave, «مرخصی داشت», cancelled), and the month's totals. Read only. A session with
-  a trainer other than the one now names that trainer.
-- **«خارج از سانس» is the trainer's alone**: the member sees their gym visits in «سوابق من».
-  *Proposed by Claude.*
+  their sessions up to today with its state, exactly as their trainer sees it (early, on time,
+  late, «خارج از سانس», absent, leave, «مرخصی داشت», cancelled), and the month's totals. Read only.
+  A session with a trainer other than the one now names that trainer.
+- **Since 15.7p the member sees their «روز دیگر» visits too**, with the same eight boxes as the
+  trainer (*decided by the developer*, 1405/08/29, in place of the visits outside the sessions
+  being the trainer's alone): every such visit of the month, not only from the day they became
+  their trainer's student (*proposed by Claude*: their own visits, nothing of anyone else's).
 - **The member sees their own absences, with no SMS or alert.** *Proposed by Claude.*
 - **Only an active member** reaches it, as the rest of their area. *Proposed by Claude.*
+
+### The student's profile and every visit in the month (15.7p)
+*Decided by the developer* (1405/08/29, the list's part four), unless marked; built 1405/08/29.
+- **«شاگردان غیرفعال (n)» is a card of its own on the trainer's home, right under «شاگردان من»**,
+  opening its own page with its own search: the students whose coaching period is over and was not
+  renewed (*«شاگردان من» in two parts* above). «شاگردان من» lists the active students only.
+  *Proposed by Claude:* the card is not shown while there is no inactive student, as «درخواست‌ها»
+  is not.
+- **A student's name opens their profile**, a page of its own: name, phone (a tap calls them),
+  «شاگرد از …», the coaching period with its last day and days left, its mark when there is
+  something to do («دوره را مشخص کنید», the last *N* days, «دوره تمام شد»), and the buttons «حضور»
+  and «برنامهٔ ثابت». Only what the trainer sees today: nothing of the member's plan or debt. The
+  name opens it in «شاگردان من», «شاگردان غیرفعال» and the day page (only for someone still the
+  trainer's student); the rows keep their «حضور» and «برنامه» buttons. A student no longer the
+  trainer's sends the trainer back to «شاگردان من».
+- **The phone number shows only on the profile** (*decided by the developer*, 1405/08/29): in
+  every list of the trainer's (students, requests, the day page, «غایبان امروز», a session's
+  students) a call icon stands in its place, and a tap on it calls the member.
+- **The student's month lists every day they came**, in date and time order, in place of 15.7d's
+  list «خارج از سانس» at the foot of the page (*decided by the developer*, 1405/08/29, after a
+  first build that had «خارج از سانس» as rows of its own):
+  - each session with its state: «زودتر از موعد», «به‌موقع», «با تأخیر», **«خارج از سانس»** (came
+    that day at another hour, in dark blue), «غایب» (did not come that day at all), «مرخصی»,
+    «لغو شد» (*Attendance for the trainer* above);
+  - a visit on a day with no session of theirs to come to, with any trainer: its own row, **«روز
+    دیگر»**, in **purple**. A day whose only session was cancelled, or that they had leave from, is
+    such a day too (*proposed by Claude, accepted*);
+  - for the trainer, only from the day the student became their student (15.7d); for the member,
+    every visit of the month (*The member's own attendance* above).
+- **Eight boxes, four a row, for the trainer and the member alike** (*decided by the developer*,
+  1405/08/29): «زودتر از موعد، به‌موقع، با تأخیر، خارج از سانس», the four a student who came on a
+  day with a session is in, then «غایب، روز دیگر، مرخصی، لغو شد». «روز دیگر» counts visits: two
+  on one day count two.
+- **Every count box has its state's colour** (*asked by the developer*, 1405/08/29): turquoise
+  «زودتر از موعد», green «به‌موقع» and «حاضر», amber «تأخیر», dark blue «خارج از سانس», red
+  «غایب», purple «روز دیگر»; «شاگردان», «مرخصی» and «لغو شد» stay neutral, as their badges are. In
+  the month (the trainer's and the member's «حضور من», which share it), on the day page and in the
+  home's «امروز»; a box pressed on the day page fills with its colour (*proposed by Claude*).
+- **The day page keeps «آمدند، بدون سانس»** (*proposed by Claude*): a page of one day has no
+  "other day".
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

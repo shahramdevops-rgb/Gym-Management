@@ -215,7 +215,7 @@ describe("the trainer's notes on sessions (15.7e)", () => {
         json(200, {
           date: today,
           isToday: true,
-          totals: { students: 0, present: 0, late: 0, cameAfter: 0, absent: 0 },
+          totals: { students: 0, present: 0, late: 0, outsideSession: 0, absent: 0 },
           sessions: [
             {
               start: "13:00:00",

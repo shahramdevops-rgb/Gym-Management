@@ -10,6 +10,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatTime, gymToday } from "@/lib/format";
 
 import { useSiteMe } from "../auth/api";
+import { useStudents } from "../coaching/api";
 import { Person } from "../components/Person";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
@@ -44,6 +45,12 @@ export function DayPage() {
   const todays = useTrainerToday({ refresh: true, enabled: isToday });
   const earlier = useTrainerDay(date, { enabled: !isToday });
   const day = isToday ? todays : earlier;
+  // A name opens the profile only of someone still the trainer's student (15.7p): an earlier day
+  // may show a former one.
+  const students = useStudents();
+  const theirs = new Set(students.data?.students.map((student) => student.memberId));
+  const profileOf = (memberId: string) =>
+    theirs.has(memberId) ? sitePaths.studentProfile(memberId) : undefined;
 
   if (me.data !== undefined && me.data.trainer === null) {
     return <Navigate to={sitePaths.home} replace />;
@@ -123,6 +130,7 @@ export function DayPage() {
             isToday={isToday}
             filter={filter}
             onFilter={(next) => show(date, next === filter ? null : next)}
+            profileOf={profileOf}
           />
           {isToday && (
             <p className="text-center text-xs text-muted-foreground">
@@ -141,11 +149,14 @@ function DayView({
   isToday,
   filter,
   onFilter,
+  profileOf,
 }: {
   day: TrainerDay;
   isToday: boolean;
   filter: DayFilter | null;
   onFilter: (filter: DayFilter) => void;
+  /** The profile a name opens, for a student of the trainer's now. */
+  profileOf: (memberId: string) => string | undefined;
 }) {
   // A filter keeps only its students, and only the sessions that have one of them.
   const sessions =
@@ -180,6 +191,7 @@ function DayView({
                 <SessionBox
                   key={`${session.start}-${session.end}-${session.removed}`}
                   session={session}
+                  profileOf={profileOf}
                 />
               ))}
             </ul>
@@ -202,6 +214,7 @@ function DayView({
                   fullName={student.fullName}
                   phoneNumber={student.phoneNumber}
                   detail={student.visits.map(formatVisit).join("، ")}
+                  to={profileOf(student.memberId)}
                 />
               </li>
             ))}
@@ -212,7 +225,13 @@ function DayView({
   );
 }
 
-function SessionBox({ session }: { session: DaySession }) {
+function SessionBox({
+  session,
+  profileOf,
+}: {
+  session: DaySession;
+  profileOf: (memberId: string) => string | undefined;
+}) {
   const times = formatSessionTimes(session);
 
   return (
@@ -238,7 +257,11 @@ function SessionBox({ session }: { session: DaySession }) {
               key={student.memberId}
               className="flex items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
             >
-              <Person fullName={student.fullName} phoneNumber={student.phoneNumber} />
+              <Person
+                fullName={student.fullName}
+                phoneNumber={student.phoneNumber}
+                to={profileOf(student.memberId)}
+              />
               <PresenceBadge
                 state={student.state}
                 checkedInAt={student.checkedInAt}

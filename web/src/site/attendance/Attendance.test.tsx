@@ -25,7 +25,7 @@ const neda = {
 };
 const absentToday = {
   ...{ date: "2026-11-07", isToday: true, outside: [] },
-  totals: { students: 1, present: 0, late: 0, cameAfter: 0, absent: 1 },
+  totals: { students: 1, present: 0, late: 0, outsideSession: 0, absent: 1 },
   sessions: [
     {
       start: "13:00:00",
@@ -59,7 +59,7 @@ const visit = {
 const today = {
   date: "2026-11-07",
   isToday: true,
-  totals: { students: 4, present: 2, late: 1, cameAfter: 1, absent: 0 },
+  totals: { students: 4, present: 2, late: 1, outsideSession: 1, absent: 0 },
   sessions: [
     {
       start: "13:00:00",
@@ -77,7 +77,7 @@ const today = {
           checkedOutAt: "14:40:00",
           minutesEarly: 30,
         },
-        { ...reza, ...visit, state: "CameAfter", checkedInAt: "16:00:00" },
+        { ...reza, ...visit, state: "OutsideSession", checkedInAt: "16:00:00" },
         { ...neda, ...visit, state: "Late", checkedInAt: "13:25:00", minutesLate: 25 },
       ],
     },
@@ -128,6 +128,18 @@ const month = {
       minutesLate: 20,
     },
     {
+      // 15.7p: missed the 13:00 session, came at 19:30 that day.
+      ...visit,
+      date: "2026-10-27",
+      start: "13:00:00",
+      end: "14:00:00",
+      trainerName: null,
+      isVip: false,
+      state: "OutsideSession",
+      checkedInAt: "19:30:00",
+      checkedOutAt: "21:00:00",
+    },
+    {
       ...visit,
       date: "2026-10-31",
       start: "13:00:00",
@@ -138,16 +150,34 @@ const month = {
       checkedInAt: null,
     },
   ],
-  totals: { early: 0, onTime: 0, late: 1, cameAfter: 0, absent: 0, leave: 1, cancelled: 0 },
-  outside: [
+  totals: {
+    early: 0,
+    onTime: 0,
+    late: 1,
+    outsideSession: 1,
+    absent: 0,
+    leave: 1,
+    cancelled: 0,
+    otherDayVisits: 1,
+  },
+  // 15.7p: a visit on a day with no session; the screen puts it among the sessions.
+  otherDays: [
     {
       date: "2026-10-25",
-      visit: { checkedInAt: "18:00:00", checkedOutAt: "19:30:00", autoCheckedOut: false },
+      visit: { checkedInAt: "10:00:00", checkedOutAt: null, autoCheckedOut: true },
     },
   ],
 };
 
-describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
+/** The colour a count box is tinted with (15.7p): its token's name, or «muted» for a neutral one. */
+function tintOf(element: HTMLElement): string | undefined {
+  return (
+    element.className.match(/bg-\[color-mix\(in_oklab,var\(--([a-z-]+)\)/)?.[1] ??
+    element.className.match(/\bbg-(muted)\b/)?.[1]
+  );
+}
+
+describe("the trainer's attendance (15.7b, 15.7d, 15.7m, 15.7p)", () => {
   it("DayPage_Today_ShowsEachStudentsStateAndCheckOut", async () => {
     mockApi({
       ...emptyHome,
@@ -162,9 +192,14 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
     expect(aliRow).toHaveTextContent("زودتر از موعد ۱۲:۳۰");
     expect(aliRow).toHaveTextContent("۳۰ دقیقه زودتر از موعد · خروج ۱۴:۴۰");
     expect(aliRow).not.toHaveTextContent("به‌موقع");
-    expect(rezaRow).toHaveTextContent("بعد از سانس آمد ۱۶:۰۰");
+    // 15.7p: came that day at another hour, «خارج از سانس», not absent.
+    expect(rezaRow).toHaveTextContent("خارج از سانس ۱۶:۰۰");
     expect(rezaRow).toHaveTextContent("داخل است");
     expect(rezaRow).not.toHaveTextContent("غایب");
+    expect(within(rezaRow!).getByText(/خارج از سانس/)).toHaveAttribute(
+      "data-variant",
+      "outsideSession",
+    );
     expect(nedaRow).toHaveTextContent("با تأخیر ۱۳:۲۵");
     expect(nedaRow).toHaveTextContent("۲۵ دقیقه تأخیر · داخل است");
 
@@ -191,7 +226,7 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
       "۴شاگردان",
       "۲حاضر",
       "۱با تأخیر",
-      "۱بعد از سانس",
+      "۱خارج از سانس",
       "۰غایب",
     ]);
 
@@ -242,7 +277,7 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
         json(200, {
           date: earlier,
           isToday: false,
-          totals: { students: 0, present: 0, late: 0, cameAfter: 0, absent: 0 },
+          totals: { students: 0, present: 0, late: 0, outsideSession: 0, absent: 0 },
           sessions: [],
           outside: [],
         }),
@@ -277,7 +312,8 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
     expect(row).toHaveTextContent("۱۳:۰۰ تا ۱۴:۰۰");
   });
 
-  it("Home_CameAfterTheSession_IsNotInTheAbsentCard", async () => {
+  it("Home_OutsideSession_IsNotInTheAbsentCard", async () => {
+    // 15.7p (the developer, 1405/08/29): came that day at another hour, so not absent.
     mockApi({
       ...emptyHome,
       "GET /api/site/me": () => json(200, trainerOnly.me),
@@ -329,7 +365,7 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
     expect(await screen.findByRole("heading", { name: "حضور", level: 1 })).toBeInTheDocument();
   });
 
-  it("AttendancePage_Month_ShowsTotalsSessionsAndVisitsOutside", async () => {
+  it("AttendancePage_Month_ShowsEveryDayTheyCameInDateAndTimeOrder", async () => {
     const api = mockApi({
       ...emptyHome,
       "GET /api/site/me": () => json(200, trainerOnly.me),
@@ -339,28 +375,26 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
     });
     renderSite(`/students/${ali.memberId}/attendance`, { access: trainerOnly });
 
-    const sessions = within(await screen.findByRole("list", { name: "سانس‌های ماه" }));
-    const [late, leave] = sessions.getAllByRole("listitem");
+    const rows = within(await screen.findByRole("list", { name: "حضور ماه" }));
+    const [late, otherDay, outsideSession, leave] = rows.getAllByRole("listitem");
     expect(late).toHaveTextContent("با تأخیر ۱۳:۲۰");
     expect(late).toHaveTextContent("۲۰ دقیقه تأخیر · خروج ثبت نشد");
     expect(late).toHaveTextContent("با سارا احمدی");
+    // 15.7p: a day with no session is a row of its own, purple, among the sessions.
+    expect(otherDay).toHaveTextContent("ورود ۱۰:۰۰ · خروج ثبت نشد");
+    expect(within(otherDay!).getByText("روز دیگر")).toHaveAttribute("data-variant", "otherDay");
+    // A session they missed but came that day at another hour: «خارج از سانس», dark blue.
+    expect(outsideSession).toHaveTextContent("خارج از سانس ۱۹:۳۰");
+    expect(outsideSession).toHaveTextContent("خروج ۲۱:۰۰");
+    expect(within(outsideSession!).getByText(/خارج از سانس/)).toHaveAttribute(
+      "data-variant",
+      "outsideSession",
+    );
     expect(leave).toHaveTextContent("مرخصی");
     expect(leave).not.toHaveTextContent("با ");
     expect(leave).not.toHaveTextContent("داخل است");
-
-    const totals = within(screen.getByRole("list", { name: "جمع ماه" }));
-    expect(totals.getAllByRole("listitem").map((box) => box.textContent)).toEqual([
-      "۰زودتر از موعد",
-      "۰به‌موقع",
-      "۱با تأخیر",
-      "۰بعد از سانس",
-      "۰غایب",
-      "۱مرخصی",
-      "۰لغو شد",
-    ]);
-
-    const outside = within(screen.getByRole("list", { name: "خارج از سانس" }));
-    expect(outside.getByRole("listitem")).toHaveTextContent("ورود ۱۸:۰۰ · خروج ۱۹:۳۰");
+    // 15.7d's list at the foot of the page is gone.
+    expect(screen.queryByRole("heading", { name: "خارج از سانس" })).not.toBeInTheDocument();
     expect(await screen.findByText("علی محمدی")).toBeInTheDocument();
 
     const thisMonth = monthRange(monthOf(gymToday()));
@@ -369,16 +403,70 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
     expect(screen.getByRole("button", { name: "ماه بعد" })).toBeDisabled();
   });
 
-  it("AttendancePage_NoVisitOutside_ShowsNoSuchList", async () => {
+  it("AttendancePage_Month_EightBoxesFourARowEachInItsStatesColour", async () => {
     mockApi({
       ...emptyHome,
       "GET /api/site/me": () => json(200, trainerOnly.me),
-      [`GET ${attendancePath}`]: () => json(200, { ...month, outside: [] }),
+      [`GET ${attendancePath}`]: () => json(200, month),
     });
     renderSite(`/students/${ali.memberId}/attendance`, { access: trainerOnly });
 
-    await screen.findByRole("list", { name: "سانس‌های ماه" });
-    expect(screen.queryByRole("list", { name: "خارج از سانس" })).not.toBeInTheDocument();
+    // The developer, 1405/08/29: the four a student who came is in, then the rest.
+    const totals = await screen.findByRole("list", { name: "جمع ماه" });
+    const boxes = within(totals).getAllByRole("listitem");
+    expect(boxes.map((box) => box.textContent)).toEqual([
+      "۰زودتر از موعد",
+      "۰به‌موقع",
+      "۱با تأخیر",
+      "۱خارج از سانس",
+      "۰غایب",
+      "۱روز دیگر",
+      "۱مرخصی",
+      "۰لغو شد",
+    ]);
+    expect(totals).toHaveClass("grid-cols-4");
+    // Each box in its badge's colour: «خارج از سانس» dark blue, «روز دیگر» purple, «غایب» red.
+    expect(boxes.map(tintOf)).toEqual([
+      "early",
+      "success",
+      "warning",
+      "outside-session",
+      "destructive",
+      "other-day",
+      "muted",
+      "muted",
+    ]);
+  });
+
+  it("AttendancePage_NoOtherDay_ShowsOnlyTheSessions", async () => {
+    mockApi({
+      ...emptyHome,
+      "GET /api/site/me": () => json(200, trainerOnly.me),
+      [`GET ${attendancePath}`]: () =>
+        json(200, {
+          ...month,
+          otherDays: [],
+          totals: { ...month.totals, otherDayVisits: 0 },
+        }),
+    });
+    renderSite(`/students/${ali.memberId}/attendance`, { access: trainerOnly });
+
+    const rows = within(await screen.findByRole("list", { name: "حضور ماه" }));
+    expect(rows.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.queryByText("روز دیگر", { selector: "[data-slot='badge']" })).toBeNull();
+  });
+
+  it("AttendancePage_OnlyOtherDaysNoSession_ListsTheVisits", async () => {
+    mockApi({
+      ...emptyHome,
+      "GET /api/site/me": () => json(200, trainerOnly.me),
+      [`GET ${attendancePath}`]: () => json(200, { ...month, sessions: [] }),
+    });
+    renderSite(`/students/${ali.memberId}/attendance`, { access: trainerOnly });
+
+    const rows = within(await screen.findByRole("list", { name: "حضور ماه" }));
+    expect(rows.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByText("در این ماه سانسی نداشته است.")).not.toBeInTheDocument();
   });
 
   it("AttendancePage_PreviousMonth_AsksForItsRange", async () => {
@@ -388,7 +476,7 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
       [`GET ${attendancePath}`]: () => json(200, month),
     });
     renderSite(`/students/${ali.memberId}/attendance`, { access: trainerOnly });
-    await screen.findByRole("list", { name: "سانس‌های ماه" });
+    await screen.findByRole("list", { name: "حضور ماه" });
 
     fireEvent.click(screen.getByRole("button", { name: "ماه قبل" }));
 
@@ -413,6 +501,59 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
 
   const box = (name: RegExp) =>
     within(screen.getByRole("list", { name: "جمع امروز" })).getByRole("button", { name });
+
+  it("DayPage_Boxes_EachInItsStatesColourAndFilledWhenPressed", async () => {
+    filterApi();
+    renderSite("/today", { access: trainerOnly });
+    const totals = await screen.findByRole("list", { name: "جمع امروز" });
+
+    // 15.7p, the developer: «حاضر» green, «با تأخیر» amber, «خارج از سانس» dark blue, «غایب» red.
+    expect(within(totals).getAllByRole("button").map(tintOf)).toEqual([
+      "muted",
+      "success",
+      "warning",
+      "outside-session",
+      "destructive",
+    ]);
+
+    fireEvent.click(box(/خارج از سانس/));
+
+    // Pressed: filled with its colour, as its badge is, and only that student shows.
+    expect(box(/خارج از سانس/)).toHaveClass("bg-outside-session");
+    expect(tintOf(box(/خارج از سانس/))).toBeUndefined();
+    const sessions = within(screen.getByRole("list", { name: "سانس‌های روز" }));
+    expect(sessions.getByText("رضا کریمی")).toBeInTheDocument();
+    expect(sessions.queryByText("علی محمدی")).not.toBeInTheDocument();
+  });
+
+  it("DayPage_NameOfAStudentNow_OpensTheirProfile", async () => {
+    mockApi({
+      ...emptyHome,
+      "GET /api/site/me": () => json(200, trainerOnly.me),
+      "GET /api/site/coaching/today": () => json(200, today),
+      // Reza is no longer the trainer's student: his name stays text (15.7p).
+      "GET /api/site/coaching/students": () =>
+        json(200, {
+          requests: [],
+          periodSoonDays: 7,
+          students: [
+            { ...ali, since: "2026-10-01", isActive: true, periodEndsOn: null },
+            { ...neda, since: "2026-10-01", isActive: true, periodEndsOn: null },
+          ],
+        }),
+    });
+    renderSite("/today", { access: trainerOnly });
+
+    const first = within(await screen.findByRole("list", { name: "شاگردان ۱۳:۰۰ تا ۱۴:۰۰" }));
+    expect(await first.findByRole("link", { name: "علی محمدی" })).toHaveAttribute(
+      "href",
+      `/students/${ali.memberId}/profile`,
+    );
+    expect(first.queryByRole("link", { name: "رضا کریمی" })).not.toBeInTheDocument();
+    expect(first.getByText("رضا کریمی")).toBeInTheDocument();
+    const outside = within(screen.getByRole("list", { name: "آمدند، بدون سانس" }));
+    expect(outside.queryByRole("link", { name: "رضا کریمی" })).not.toBeInTheDocument();
+  });
 
   it("DayPage_PressABox_ShowsOnlyItsStudentsAndAgainShowsAll", async () => {
     filterApi();
@@ -464,11 +605,23 @@ describe("the trainer's attendance (15.7b, 15.7d, 15.7m)", () => {
   });
 
   it("DayPage_BoxWithNoOne_SaysSo", async () => {
-    filterApi();
+    // A day with no one late (15.7p made Reza absent, so «غایب» has someone now).
+    const noOneLate = {
+      ...today,
+      sessions: today.sessions.map((session) => ({
+        ...session,
+        students: session.students.filter((student) => student.state !== "Late"),
+      })),
+    };
+    mockApi({
+      ...emptyHome,
+      "GET /api/site/me": () => json(200, trainerOnly.me),
+      "GET /api/site/coaching/today": () => json(200, noOneLate),
+    });
     renderSite("/today", { access: trainerOnly });
     await screen.findByRole("list", { name: "جمع امروز" });
 
-    fireEvent.click(box(/غایب/));
+    fireEvent.click(box(/با تأخیر/));
 
     expect(screen.getByText("کسی در این دسته نیست.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "سانس‌های روز" })).not.toBeInTheDocument();

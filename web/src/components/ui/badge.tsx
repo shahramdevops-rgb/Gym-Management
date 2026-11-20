@@ -18,6 +18,8 @@ const badgeVariants = cva(
         warning: "bg-warning text-warning-foreground",
         cardio: "bg-cardio text-neutral-950",
         early: "bg-early text-white dark:text-neutral-950",
+        otherDay: "bg-other-day text-white dark:text-neutral-950",
+        outsideSession: "bg-outside-session text-white dark:text-neutral-950",
         guest: "bg-guest text-white dark:text-neutral-950",
         birthday: "bg-party-pink text-neutral-950",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",

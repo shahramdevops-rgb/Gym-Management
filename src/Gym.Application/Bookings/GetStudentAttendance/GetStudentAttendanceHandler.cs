@@ -33,10 +33,10 @@ public sealed class GetStudentAttendanceHandler(IAppDbContext db, IGymCalendar c
             return Result.Failure<StudentAttendanceResponse>(BookingErrors.AttendanceRangeInvalid);
         }
 
-        // «خارج از سانس» from the day they became this trainer's student, not their gym visits before it.
+        // «روز دیگر» from the day they became this trainer's student, not their gym visits before it.
         var read = await AttendanceReading.ReadAsync(
-            db, calendar, memberId, from, to, viewingTrainerId: trainer.Value.Id, outsideSince: link.Value.StartedOn, cancellationToken);
+            db, calendar, memberId, from, to, viewingTrainerId: trainer.Value.Id, otherDaysSince: link.Value.StartedOn, cancellationToken);
 
-        return new StudentAttendanceResponse(memberId, from, to, read.Items, read.Totals, read.Outside);
+        return new StudentAttendanceResponse(memberId, from, to, read.Items, read.Totals, read.OtherDays);
     }
 }

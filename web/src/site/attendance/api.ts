@@ -13,7 +13,7 @@ export type OutsideStudent = components["schemas"]["OutsideStudent"];
 export type VisitTimes = components["schemas"]["VisitTimes"];
 export type StudentAttendance = components["schemas"]["StudentAttendanceResponse"];
 export type AttendanceItem = components["schemas"]["AttendanceItem"];
-export type OutsideVisit = components["schemas"]["OutsideVisit"];
+export type OtherDayVisit = components["schemas"]["OtherDayVisit"];
 export type SessionPresence = components["schemas"]["SessionPresence"];
 
 // Under the bookings' key: a change of a schedule or of the timetable reads them again.

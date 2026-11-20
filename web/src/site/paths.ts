@@ -7,8 +7,16 @@ export const sitePaths = {
   trainers: "/trainers",
   /** The trainer's «تمام سانس‌های من» (15.6a). */
   timetable: "/timetable",
-  /** The trainer's «شاگردان من», a page of its own since 1405/08/20. */
+  /** The trainer's «شاگردان من», a page of its own since 1405/08/20; the active students since 15.7p. */
   students: "/students",
+  /**
+   * The trainer's «شاگردان غیرفعال» (15.7p). A static segment, so React Router puts it before
+   * `studentPattern`'s `:memberId`.
+   */
+  inactiveStudents: "/students/inactive",
+  /** A student's profile, opened from their name (15.7p). */
+  studentProfile: (memberId: string) => `/students/${memberId}/profile`,
+  studentProfilePattern: "/students/:memberId/profile",
   /** The trainer's «برنامهٔ ثابت» of one student (15.6b). */
   student: (memberId: string) => `/students/${memberId}`,
   studentPattern: "/students/:memberId",

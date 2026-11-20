@@ -2991,13 +2991,15 @@ export interface components {
             /** Format: int32 */
             late: number | string;
             /** Format: int32 */
-            cameAfter: number | string;
+            outsideSession: number | string;
             /** Format: int32 */
             absent: number | string;
             /** Format: int32 */
             leave: number | string;
             /** Format: int32 */
             cancelled: number | string;
+            /** Format: int32 */
+            otherDayVisits: number | string;
         };
         AttendanceWeekdayResponse: {
             weekday: components["schemas"]["DayOfWeek"];
@@ -3333,7 +3335,7 @@ export interface components {
             /** Format: int32 */
             late: number | string;
             /** Format: int32 */
-            cameAfter: number | string;
+            outsideSession: number | string;
             /** Format: int32 */
             absent: number | string;
         };
@@ -3841,6 +3843,7 @@ export interface components {
             to: string;
             sessions: components["schemas"]["AttendanceItem"][];
             totals: components["schemas"]["AttendanceTotals"];
+            otherDays: components["schemas"]["OtherDayVisit"][];
         };
         MyCafeOrderResponse: {
             /** Format: uuid */
@@ -4023,17 +4026,17 @@ export interface components {
             /** Format: int32 */
             free: number | string;
         };
+        OtherDayVisit: {
+            /** Format: date */
+            date: string;
+            visit: components["schemas"]["VisitTimes"];
+        };
         OutsideStudent: {
             /** Format: uuid */
             memberId: string;
             fullName: string;
             phoneNumber: string;
             visits: components["schemas"]["VisitTimes"][];
-        };
-        OutsideVisit: {
-            /** Format: date */
-            date: string;
-            visit: components["schemas"]["VisitTimes"];
         };
         PagedResponseOfAttendanceResponse: {
             items: components["schemas"]["AttendanceResponse"][];
@@ -4711,7 +4714,7 @@ export interface components {
             note?: null | string;
         };
         /** @enum {unknown} */
-        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled" | "CameAfter" | "Early";
+        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled" | "Early" | "OutsideSession";
         SessionResponse: {
             /** Format: time */
             start: string;
@@ -5196,7 +5199,7 @@ export interface components {
             to: string;
             sessions: components["schemas"]["AttendanceItem"][];
             totals: components["schemas"]["AttendanceTotals"];
-            outside: components["schemas"]["OutsideVisit"][];
+            otherDays: components["schemas"]["OtherDayVisit"][];
         };
         StudentRequestResponse: {
             /** Format: uuid */

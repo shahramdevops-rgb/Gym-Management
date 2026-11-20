@@ -43,10 +43,12 @@ describe("TrainerArea", () => {
 
     await screen.findByRole("list", { name: "شاگردان من" });
     expect(screen.queryByRole("heading", { name: /^درخواست‌ها/ })).not.toBeInTheDocument();
-    expect(list("شاگردان من").getByRole("link", { name: "۰۹۱۲ ۱۲۳ ۴۵۶۷" })).toHaveAttribute(
+    // 15.7p (the developer): the number only on the profile, a call icon here.
+    expect(list("شاگردان من").getByRole("link", { name: "تماس با علی محمدی" })).toHaveAttribute(
       "href",
       "tel:+989121234567",
     );
+    expect(list("شاگردان من").queryByText("۰۹۱۲ ۱۲۳ ۴۵۶۷")).not.toBeInTheDocument();
     expect(list("شاگردان من").getByText("غیرفعال")).toBeInTheDocument();
   });
 

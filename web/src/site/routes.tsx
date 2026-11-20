@@ -58,6 +58,16 @@ export const siteRoutes: RouteObject[] = [
         ...lazyPage(async () => (await import("./coaching/StudentsPage")).StudentsPage),
       },
       {
+        path: sitePaths.inactiveStudents,
+        ...lazyPage(
+          async () => (await import("./coaching/InactiveStudentsPage")).InactiveStudentsPage,
+        ),
+      },
+      {
+        path: sitePaths.studentProfilePattern,
+        ...lazyPage(async () => (await import("./coaching/StudentProfilePage")).StudentProfilePage),
+      },
+      {
         path: sitePaths.studentPattern,
         ...lazyPage(
           async () => (await import("./bookings/StudentSchedulePage")).StudentSchedulePage,
